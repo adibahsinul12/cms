@@ -18,3 +18,7 @@ $route['admin/posts/create'] = 'admin/create_post';
 $route['admin/posts/edit/(:num)'] = 'admin/edit_post/$1';
 $route['admin/categories'] = 'admin/categories';
 $route['admin/tags'] = 'admin/tags';
+
+// Admin Routes
+$route['admin/categories'] = 'admin/categories';
+$route['admin/tags'] = 'admin/tags';
