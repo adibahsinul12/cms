@@ -32,4 +32,7 @@ class Admin extends CI_Controller {
     public function tags() {
         $this->load->view('admin/tags/index');
     }
+    public function media() {
+        $this->load->view('admin/media/index');
+    }
 }

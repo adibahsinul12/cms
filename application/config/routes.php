@@ -22,3 +22,4 @@ $route['admin/tags'] = 'admin/tags';
 // Admin Routes
 $route['admin/categories'] = 'admin/categories';
 $route['admin/tags'] = 'admin/tags';
+$route['admin/media'] = 'admin/media';
