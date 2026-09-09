@@ -13,10 +13,10 @@ class Post extends Base_api {
     /**
      * GET /api/post - List semua post
      */
-    public function index_get() {
-        $limit = $this->get('limit') ?: 10;
-        $offset = $this->get('offset') ?: 0;
-        $status = $this->get('status');
+    public function index() {
+        $limit  = $this->input->get('limit') ? $this->input->get('limit') : 10;
+        $offset = $this->input->get('offset') ? $this->input->get('offset') : 0;
+        $status = $this->input->get('status');
         
         $posts = $this->Post_model->get_posts($limit, $offset, $status);
         $total = $this->Post_model->count_posts($status);
@@ -33,16 +33,18 @@ class Post extends Base_api {
     }
     
     /**
-     * GET /api/post/{id} - Detail post
+     * GET /api/post/detail/{id} - Detail post
      */
-    public function detail_get($id) {
+    public function detail($id = NULL) {
+        if (!$id) {
+            $this->response_error('ID Post wajib diisi', 400);
+            return;
+        }
+
         $post = $this->Post_model->get_post_by_id($id);
         
         if (!$post) {
-            $this->response([
-                'status' => 'error',
-                'message' => 'Post not found'
-            ], 404);
+            $this->response_error('Post not found', 404);
             return;
         }
         
@@ -56,128 +58,113 @@ class Post extends Base_api {
     }
     
     /**
-     * POST /api/post - Create new post
+     * POST /api/post/create - Create new post
      */
-    public function index_post() {
-        $this->form_validation->set_rules('title', 'Title', 'required');
-        $this->form_validation->set_rules('slug', 'Slug', 'required|is_unique[posts.slug]');
-        $this->form_validation->set_rules('author_id', 'Author ID', 'required|numeric');
+    public function create() {
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
         
-        if ($this->form_validation->run() == FALSE) {
-            $this->response([
-                'status' => 'error',
-                'errors' => $this->form_validation->error_array()
-            ], 400);
+        if (empty($input_data['title']) || empty($input_data['slug']) || empty($input_data['author_id'])) {
+            $this->response_error('Title, Slug, dan Author ID wajib diisi!', 400);
             return;
         }
         
         $data = [
-            'author_id' => $this->post('author_id'),
-            'type' => $this->post('type') ?: 'post',
-            'title' => $this->post('title'),
-            'slug' => $this->post('slug'),
-            'content' => $this->post('content'),
-            'excerpt' => $this->post('excerpt'),
-            'status' => $this->post('status') ?: 'draft',
-            'scheduled_at' => $this->post('scheduled_at'),
-            'category_id' => $this->post('category_id'),
-            'tag_id' => $this->post('tag_id'),
-            'featured_image_id' => $this->post('featured_image_id')
+            'author_id' => $input_data['author_id'],
+            'type' => isset($input_data['type']) ? $input_data['type'] : 'post',
+            'title' => $input_data['title'],
+            'slug' => $input_data['slug'],
+            'content' => isset($input_data['content']) ? $input_data['content'] : '',
+            'excerpt' => isset($input_data['excerpt']) ? $input_data['excerpt'] : '',
+            'status' => isset($input_data['status']) ? $input_data['status'] : 'draft',
+            'scheduled_at' => isset($input_data['scheduled_at']) ? $input_data['scheduled_at'] : NULL,
+            'category_id' => isset($input_data['category_id']) ? $input_data['category_id'] : NULL,
+            'tag_id' => isset($input_data['tag_id']) ? $input_data['tag_id'] : NULL,
+            'featured_image_id' => isset($input_data['featured_image_id']) ? $input_data['featured_image_id'] : NULL
         ];
         
         $post_id = $this->Post_model->create_post($data);
         
         if ($post_id) {
-            $this->response([
-                'status' => 'success',
-                'message' => 'Post created successfully',
-                'data' => ['post_id' => $post_id]
-            ], 201);
+            $this->response_success(['post_id' => $post_id], 'Post created successfully', 201);
         } else {
-            $this->response([
-                'status' => 'error',
-                'message' => 'Failed to create post'
-            ], 500);
+            $this->response_error('Failed to create post', 500);
         }
     }
     
     /**
-     * PUT /api/post/{id} - Update post
+     * PUT/POST /api/post/update/{id} - Update post
      */
-    public function index_put($id) {
+    public function update($id = NULL) {
+        if (!$id) {
+            $this->response_error('ID Post wajib diisi', 400);
+            return;
+        }
+
         $existing = $this->Post_model->get_post_by_id($id);
         if (!$existing) {
-            $this->response([
-                'status' => 'error',
-                'message' => 'Post not found'
-            ], 404);
+            $this->response_error('Post not found', 404);
             return;
         }
         
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+        
         $data = [
-            'title' => $this->put('title'),
-            'slug' => $this->put('slug'),
-            'content' => $this->put('content'),
-            'excerpt' => $this->put('excerpt'),
-            'status' => $this->put('status') ?: 'draft',
-            'scheduled_at' => $this->put('scheduled_at'),
-            'category_id' => $this->put('category_id'),
-            'tag_id' => $this->put('tag_id'),
-            'featured_image_id' => $this->put('featured_image_id')
+            'title' => isset($input_data['title']) ? $input_data['title'] : $existing['title'],
+            'slug' => isset($input_data['slug']) ? $input_data['slug'] : $existing['slug'],
+            'content' => isset($input_data['content']) ? $input_data['content'] : $existing['content'],
+            'excerpt' => isset($input_data['excerpt']) ? $input_data['excerpt'] : $existing['excerpt'],
+            'status' => isset($input_data['status']) ? $input_data['status'] : $existing['status'],
+            'scheduled_at' => isset($input_data['scheduled_at']) ? $input_data['scheduled_at'] : $existing['scheduled_at'],
+            'category_id' => isset($input_data['category_id']) ? $input_data['category_id'] : $existing['category_id'],
+            'tag_id' => isset($input_data['tag_id']) ? $input_data['tag_id'] : $existing['tag_id'],
+            'featured_image_id' => isset($input_data['featured_image_id']) ? $input_data['featured_image_id'] : $existing['featured_image_id']
         ];
         
         $result = $this->Post_model->update_post($id, $data);
         
         if ($result) {
-            $this->response([
-                'status' => 'success',
-                'message' => 'Post updated successfully'
-            ], 200);
+            $this->response_success(null, 'Post updated successfully', 200);
         } else {
-            $this->response([
-                'status' => 'error',
-                'message' => 'Failed to update post'
-            ], 500);
+            $this->response_error('Failed to update post', 500);
         }
     }
     
     /**
-     * DELETE /api/post/{id} - Delete post
+     * DELETE /api/post/delete/{id} - Delete post
      */
-    public function index_delete($id) {
+    public function delete($id = NULL) {
+        if (!$id) {
+            $this->response_error('ID Post wajib diisi', 400);
+            return;
+        }
+
         $existing = $this->Post_model->get_post_by_id($id);
         if (!$existing) {
-            $this->response([
-                'status' => 'error',
-                'message' => 'Post not found'
-            ], 404);
+            $this->response_error('Post not found', 404);
             return;
         }
         
         $result = $this->Post_model->delete_post($id);
         
         if ($result) {
-            $this->response([
-                'status' => 'success',
-                'message' => 'Post deleted successfully'
-            ], 200);
+            $this->response_success(null, 'Post deleted successfully', 200);
         } else {
-            $this->response([
-                'status' => 'error',
-                'message' => 'Failed to delete post'
-            ], 500);
+            $this->response_error('Failed to delete post', 500);
         }
     }
     
     /**
      * GET /api/post/revisions/{post_id} - Ambil revisi
      */
-    public function revisions_get($post_id) {
+    public function revisions($post_id = NULL) {
+        if (!$post_id) {
+            $this->response_error('Post ID wajib diisi', 400);
+            return;
+        }
+
         $revisions = $this->Post_model->get_post_revisions($post_id);
-        
-        $this->response([
-            'status' => 'success',
-            'data' => $revisions
-        ], 200);
+        $this->response_success($revisions, 'Success', 200);
     }
 }

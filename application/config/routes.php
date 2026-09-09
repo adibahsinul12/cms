@@ -1,25 +1,36 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-$route['default_controller'] = 'welcome';
-$route['404_override'] = '';
+$route['default_controller']   = 'admin/dashboard'; // Mengarahkan tampilan awal langsung ke Admin Dashboard
+$route['404_override']         = '';
 $route['translate_uri_dashes'] = FALSE;
 
-// API Routes
-$route['api/post'] = 'api/post/index';
-$route['api/post/(:num)'] = 'api/post/detail/$1';
+// ==========================================
+// 1. FRONTEND ADMIN ROUTES (Dibuat Temanmu)
+// ==========================================
+$route['admin']                  = 'admin/dashboard';
+$route['admin/dashboard']        = 'admin/dashboard';
+$route['admin/posts']            = 'admin/posts';
+$route['admin/posts/create']     = 'admin/create_post';
+$route['admin/posts/edit/(:num)'] = 'admin/edit_post/$1';
+$route['admin/categories']       = 'admin/categories';
+$route['admin/tags']             = 'admin/tags';
+$route['admin/media']            = 'admin/media';
+
+// ==========================================
+// 2. BACKEND API ROUTES (Stage 1 - INDONESIA)
+// ==========================================
+$route['api/post']                  = 'api/post/index';
+$route['api/post/detail/(:num)']    = 'api/post/detail/$1';
+$route['api/post/create']           = 'api/post/create';
+$route['api/post/update/(:num)']    = 'api/post/update/$1';
+$route['api/post/delete/(:num)']    = 'api/post/delete/$1';
 $route['api/post/revisions/(:num)'] = 'api/post/revisions/$1';
 
-// Admin Routes
-$route['admin'] = 'admin/dashboard';
-$route['admin/dashboard'] = 'admin/dashboard';
-$route['admin/posts'] = 'admin/posts';
-$route['admin/posts/create'] = 'admin/create_post';
-$route['admin/posts/edit/(:num)'] = 'admin/edit_post/$1';
-$route['admin/categories'] = 'admin/categories';
-$route['admin/tags'] = 'admin/tags';
-
-// Admin Routes
-$route['admin/categories'] = 'admin/categories';
-$route['admin/tags'] = 'admin/tags';
-$route['admin/media'] = 'admin/media';
+// ==========================================
+// 3. BACKEND API ROUTES (Stage 2 - JEPANG)
+// ==========================================
+$route['api/media']['get']                  = 'api/media/index';
+$route['api/media/upload']['post']          = 'api/media/upload';
+$route['api/media/delete/(:num)']['delete'] = 'api/media/delete/$1';
+$route['api/media/delete/(:num)']['post']   = 'api/media/delete/$1';
