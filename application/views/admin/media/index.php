@@ -74,19 +74,11 @@
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- SIDEBAR -->
-            <nav class="col-md-2 d-md-block bg-dark sidebar">
-                <div class="position-sticky pt-3">
-                    <h5 class="text-white text-center py-3">📝 CMS Admin</h5>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/posts') ?>"><i class="fas fa-file-alt"></i> Posts</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/categories') ?>"><i class="fas fa-tags"></i> Categories</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/tags') ?>"><i class="fas fa-tag"></i> Tags</a></li>
-                        <li class="nav-item"><a class="nav-link text-white active" href="<?= base_url('admin/media') ?>"><i class="fas fa-images"></i> Media</a></li>
-                    </ul>
-                </div>
-            </nav>
+            <?php
+                // Sidebar sekarang di-include dari partial bersama, bukan hardcoded lagi.
+                $active_menu = 'media';
+                $this->load->view('admin/partials/sidebar', ['active_menu' => $active_menu]);
+            ?>
 
             <!-- MAIN CONTENT -->
             <main class="col-md-10 ms-sm-auto px-md-4">
@@ -193,6 +185,10 @@
         let detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
         let uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
 
+        // Ekstensi yang dianggap gambar untuk keperluan preview di grid.
+        // file_type di DB menyimpan EKSTENSI saja (mis. 'png', 'jpg'), bukan MIME type lengkap.
+        const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif'];
+
         $(document).ready(function() {
             loadMedia();
 
@@ -246,7 +242,7 @@
                 };
 
                 $.ajax({
-                    url: `${API_URL}/${id}`,
+                    url: `${API_URL}/update/${id}`,
                     method: 'PUT',
                     contentType: 'application/json',
                     data: JSON.stringify(data),
@@ -266,7 +262,7 @@
                 const id = $('#detail-id').val();
                 if (confirm('Yakin hapus file ini?')) {
                     $.ajax({
-                        url: `${API_URL}/${id}`,
+                        url: `${API_URL}/delete/${id}`,
                         method: 'DELETE',
                         success: function() {
                             showAlert('File deleted!', 'success');
@@ -289,7 +285,7 @@
 
         function loadMedia() {
             $('#media-grid').html('<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading media...</p></div>');
-            
+
             $.ajax({
                 url: API_URL,
                 method: 'GET',
@@ -297,11 +293,12 @@
                     let html = '';
                     if (res.data && res.data.length > 0) {
                         res.data.forEach(function(m) {
-                            const isImage = m.file_type.startsWith('image/');
+                            const ext = (m.file_type || '').toLowerCase().replace('.', '');
+                            const isImage = IMAGE_EXTENSIONS.includes(ext);
                             const icon = isImage ? '' : '<i class="fas fa-file fa-3x"></i>';
                             html += `
                                 <div class="media-item" data-id="${m.id}">
-                                    ${isImage ? `<img src="${m.file_path}" alt="${m.alt_text || m.file_name}">` : `<div class="text-center p-4">${icon}</div>`}
+                                    ${isImage ? `<img src="${m.file_url || m.file_path}" alt="${m.alt_text || m.file_name}">` : `<div class="text-center p-4">${icon}</div>`}
                                     <div class="info">
                                         <div class="file-name" title="${m.file_name}">${m.file_name}</div>
                                         <small class="text-muted">${(m.file_size / 1024).toFixed(1)} KB</small>
@@ -326,12 +323,12 @@
 
         function loadMediaDetail(id) {
             $.ajax({
-                url: `${API_URL}/${id}`,
+                url: `${API_URL}/show/${id}`,
                 method: 'GET',
                 success: function(res) {
                     const m = res.data;
                     $('#detail-id').val(m.id);
-                    $('#detail-image').attr('src', m.file_path);
+                    $('#detail-image').attr('src', m.file_url || m.file_path);
                     $('#detail-filename').val(m.file_name);
                     $('#detail-type').val(m.file_type);
                     $('#detail-size').val((m.file_size / 1024).toFixed(1) + ' KB');
@@ -345,46 +342,69 @@
             });
         }
 
+        // Upload file satu per satu ke endpoint yang benar (`${API_URL}/upload`)
+        // dengan field name 'file' (tunggal), sesuai kontrak controller upload().
         function uploadFiles(files) {
-            const formData = new FormData();
-            for (let i = 0; i < files.length; i++) {
-                formData.append('files[]', files[i]);
-            }
-
             $('#upload-progress').show();
             $('#progress-bar').css('width', '0%');
             $('#upload-status').text('Uploading...');
 
-            $.ajax({
-                url: API_URL,
-                method: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                xhr: function() {
-                    const xhr = new XMLHttpRequest();
-                    xhr.upload.addEventListener('progress', function(e) {
-                        if (e.lengthComputable) {
-                            const percent = (e.loaded / e.total) * 100;
-                            $('#progress-bar').css('width', percent + '%');
-                            $('#upload-status').text(`Uploading ${Math.round(percent)}%`);
-                        }
-                    });
-                    return xhr;
-                },
-                success: function(res) {
-                    $('#upload-status').text('Upload complete!');
-                    setTimeout(function() {
-                        uploadModal.hide();
+            const total = files.length;
+            let uploaded = 0;
+            let failedFiles = [];
+
+            function uploadNext(index) {
+                if (index >= total) {
+                    if (failedFiles.length === 0) {
+                        $('#upload-status').text('Upload complete!');
+                        setTimeout(function() {
+                            uploadModal.hide();
+                            loadMedia();
+                            showAlert('Files uploaded successfully!', 'success');
+                        }, 800);
+                    } else {
+                        $('#upload-status').text('Selesai dengan beberapa error.');
                         loadMedia();
-                        showAlert('Files uploaded successfully!', 'success');
-                    }, 1000);
-                },
-                error: function() {
-                    $('#upload-status').text('Upload failed!');
-                    showAlert('Error uploading files', 'danger');
+                        showAlert(`Gagal upload ${failedFiles.length} file: ${failedFiles.join(', ')}`, 'danger');
+                    }
+                    return;
                 }
-            });
+
+                const formData = new FormData();
+                formData.append('file', files[index]); // field name HARUS 'file' (tunggal)
+
+                $.ajax({
+                    url: `${API_URL}/upload`, // endpoint upload yang benar
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    xhr: function() {
+                        const xhr = new XMLHttpRequest();
+                        xhr.upload.addEventListener('progress', function(e) {
+                            if (e.lengthComputable) {
+                                const filePercent = (e.loaded / e.total);
+                                const overallPercent = ((uploaded + filePercent) / total) * 100;
+                                $('#progress-bar').css('width', overallPercent + '%');
+                                $('#upload-status').text(`Uploading ${Math.round(overallPercent)}% (${uploaded + 1}/${total})`);
+                            }
+                        });
+                        return xhr;
+                    },
+                    success: function(res) {
+                        uploaded++;
+                        uploadNext(index + 1);
+                    },
+                    error: function(xhr) {
+                        console.error('Upload failed for', files[index].name, xhr.responseText);
+                        failedFiles.push(files[index].name);
+                        uploaded++;
+                        uploadNext(index + 1);
+                    }
+                });
+            }
+
+            uploadNext(0);
         }
 
         function showAlert(message, type) {

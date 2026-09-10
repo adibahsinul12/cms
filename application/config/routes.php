@@ -1,24 +1,46 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
+<<<<<<< HEAD
 $route['default_controller'] = 'auth/login';
 $route['404_override'] = '';
+=======
+$route['default_controller']   = 'admin/dashboard'; // Mengarahkan tampilan awal langsung ke Admin Dashboard
+$route['404_override']         = '';
+>>>>>>> d8138032828a25915dd8a5f4e684bb57a5d1a050
 $route['translate_uri_dashes'] = FALSE;
 
-// API Routes
-$route['api/post'] = 'api/post/index';
-$route['api/post/(:num)'] = 'api/post/detail/$1';
+// ==========================================
+// 1. FRONTEND ADMIN ROUTES (Dibuat Temanmu)
+// ==========================================
+$route['admin']                  = 'admin/dashboard';
+$route['admin/dashboard']        = 'admin/dashboard';
+$route['admin/posts']            = 'admin/posts';
+$route['admin/posts/create']     = 'admin/create_post';
+$route['admin/posts/edit/(:num)'] = 'admin/edit_post/$1';
+$route['admin/categories']       = 'admin/categories';
+$route['admin/tags']             = 'admin/tags';
+$route['admin/media']            = 'admin/media';
+
+// ==========================================
+// 2. BACKEND API ROUTES (Stage 1 - INDONESIA)
+// ==========================================
+$route['api/post']                  = 'api/post/index';
+$route['api/post/detail/(:num)']    = 'api/post/detail/$1';
+$route['api/post/create']           = 'api/post/create';
+$route['api/post/update/(:num)']    = 'api/post/update/$1';
+$route['api/post/delete/(:num)']    = 'api/post/delete/$1';
 $route['api/post/revisions/(:num)'] = 'api/post/revisions/$1';
 
-// Admin Routes
-$route['admin'] = 'admin/dashboard';
-$route['admin/dashboard'] = 'admin/dashboard';
-$route['admin/posts'] = 'admin/posts';
-$route['admin/posts/create'] = 'admin/create_post';
-$route['admin/posts/edit/(:num)'] = 'admin/edit_post/$1';
-$route['admin/categories'] = 'admin/categories';
-$route['admin/tags'] = 'admin/tags';
+// ==========================================
+// 3. BACKEND API ROUTES (Stage 2 - JEPANG)
+// ==========================================
+$route['api/media']['get']                  = 'api/media/index';
+$route['api/media/upload']['post']          = 'api/media/upload';
+$route['api/media/delete/(:num)']['delete'] = 'api/media/delete/$1';
+$route['api/media/delete/(:num)']['post']   = 'api/media/delete/$1';
 
+<<<<<<< HEAD
 // Admin Routes
 $route['admin/categories'] = 'admin/categories';
 $route['admin/tags'] = 'admin/tags';
@@ -29,3 +51,29 @@ $route['auth/login'] = 'auth/login';
 $route['auth/register'] = 'auth/register';
 $route['auth/logout'] = 'auth/logout';
 $route['admin/users'] = 'admin/users';
+=======
+// ==========================================
+// 4. BACKEND API ROUTES (Stage 3 - JERMAN)
+// ==========================================
+$route['api/user']                  = 'api/user/index';
+$route['api/user/roles']            = 'api/user/roles';
+$route['api/user/detail/(:num)']    = 'api/user/detail/$1';
+$route['api/user/create']           = 'api/user/create';
+$route['api/user/update/(:num)']    = 'api/user/update/$1';
+$route['api/user/delete/(:num)']    = 'api/user/delete/$1';
+
+// ==========================================
+// 5. STAGE 6 - AUTH & PUBLIC ROUTES
+// ==========================================
+
+// Frontend View Routes
+$route['login']                    = 'auth_view/login';
+$route['register']                 = 'auth_view/register';
+$route['home']                     = 'home_view/index'; // Landing Page utama
+
+// API Routes Auth & Public
+$route['api/auth/login']           = 'api/auth/login';
+$route['api/auth/register']        = 'api/auth/register';
+$route['api/auth/logout']          = 'api/auth/logout';
+$route['api/public/posts'] = 'api/public_posts/index';
+>>>>>>> d8138032828a25915dd8a5f4e684bb57a5d1a050
