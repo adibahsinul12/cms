@@ -44,3 +44,18 @@ $route['api/user/detail/(:num)']    = 'api/user/detail/$1';
 $route['api/user/create']           = 'api/user/create';
 $route['api/user/update/(:num)']    = 'api/user/update/$1';
 $route['api/user/delete/(:num)']    = 'api/user/delete/$1';
+
+// ==========================================
+// 5. STAGE 6 - AUTH & PUBLIC ROUTES
+// ==========================================
+
+// Frontend View Routes
+$route['login']                    = 'auth_view/login';
+$route['register']                 = 'auth_view/register';
+$route['home']                     = 'home_view/index'; // Landing Page utama
+
+// API Routes Auth & Public
+$route['api/auth/login']           = 'api/auth/login';
+$route['api/auth/register']        = 'api/auth/register';
+$route['api/auth/logout']          = 'api/auth/logout';
+$route['api/public/posts'] = 'api/public_posts/index';
