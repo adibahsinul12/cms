@@ -1,13 +1,8 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-<<<<<<< HEAD
-$route['default_controller'] = 'auth/login';
-$route['404_override'] = '';
-=======
-$route['default_controller']   = 'admin/dashboard'; // Mengarahkan tampilan awal langsung ke Admin Dashboard
+$route['default_controller']   = 'home_view/index'; // Landing Page publik sebagai halaman awal
 $route['404_override']         = '';
->>>>>>> d8138032828a25915dd8a5f4e684bb57a5d1a050
 $route['translate_uri_dashes'] = FALSE;
 
 // ==========================================
@@ -21,6 +16,7 @@ $route['admin/posts/edit/(:num)'] = 'admin/edit_post/$1';
 $route['admin/categories']       = 'admin/categories';
 $route['admin/tags']             = 'admin/tags';
 $route['admin/media']            = 'admin/media';
+$route['admin/users']            = 'admin/users';
 
 // ==========================================
 // 2. BACKEND API ROUTES (Stage 1 - INDONESIA)
@@ -40,18 +36,6 @@ $route['api/media/upload']['post']          = 'api/media/upload';
 $route['api/media/delete/(:num)']['delete'] = 'api/media/delete/$1';
 $route['api/media/delete/(:num)']['post']   = 'api/media/delete/$1';
 
-<<<<<<< HEAD
-// Admin Routes
-$route['admin/categories'] = 'admin/categories';
-$route['admin/tags'] = 'admin/tags';
-$route['admin/media'] = 'admin/media';
-
-// Auth Routes
-$route['auth/login'] = 'auth/login';
-$route['auth/register'] = 'auth/register';
-$route['auth/logout'] = 'auth/logout';
-$route['admin/users'] = 'admin/users';
-=======
 // ==========================================
 // 4. BACKEND API ROUTES (Stage 3 - JERMAN)
 // ==========================================
@@ -75,5 +59,4 @@ $route['home']                     = 'home_view/index'; // Landing Page utama
 $route['api/auth/login']           = 'api/auth/login';
 $route['api/auth/register']        = 'api/auth/register';
 $route['api/auth/logout']          = 'api/auth/logout';
-$route['api/public/posts'] = 'api/public_posts/index';
->>>>>>> d8138032828a25915dd8a5f4e684bb57a5d1a050
+$route['api/public/posts']         = 'api/public_posts/index';
