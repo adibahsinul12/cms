@@ -34,3 +34,13 @@ $route['api/media']['get']                  = 'api/media/index';
 $route['api/media/upload']['post']          = 'api/media/upload';
 $route['api/media/delete/(:num)']['delete'] = 'api/media/delete/$1';
 $route['api/media/delete/(:num)']['post']   = 'api/media/delete/$1';
+
+// ==========================================
+// 4. BACKEND API ROUTES (Stage 3 - JERMAN)
+// ==========================================
+$route['api/user']                  = 'api/user/index';
+$route['api/user/roles']            = 'api/user/roles';
+$route['api/user/detail/(:num)']    = 'api/user/detail/$1';
+$route['api/user/create']           = 'api/user/create';
+$route['api/user/update/(:num)']    = 'api/user/update/$1';
+$route['api/user/delete/(:num)']    = 'api/user/delete/$1';
