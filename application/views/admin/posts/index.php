@@ -94,7 +94,7 @@
             // Delete post
             $(document).on('click', '.delete-post', function() {
                 const id = $(this).data('id');
-                if (confirm('Yakin hapus post ini?')) {
+                aif (confirm('Yakin hapus post ini?')) {
                     $.ajax({
                         url: '<?= base_url("api/post/") ?>' + id,
                         method: 'DELETE',

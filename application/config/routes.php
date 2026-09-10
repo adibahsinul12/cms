@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-$route['default_controller'] = 'welcome';
+$route['default_controller'] = 'auth/login';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 
@@ -23,3 +23,9 @@ $route['admin/tags'] = 'admin/tags';
 $route['admin/categories'] = 'admin/categories';
 $route['admin/tags'] = 'admin/tags';
 $route['admin/media'] = 'admin/media';
+
+// Auth Routes
+$route['auth/login'] = 'auth/login';
+$route['auth/register'] = 'auth/register';
+$route['auth/logout'] = 'auth/logout';
+$route['admin/users'] = 'admin/users';

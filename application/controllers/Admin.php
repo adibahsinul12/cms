@@ -35,4 +35,7 @@ class Admin extends CI_Controller {
     public function media() {
         $this->load->view('admin/media/index');
     }
+    public function users() {
+        $this->load->view('admin/users/index');
+    }
 }
