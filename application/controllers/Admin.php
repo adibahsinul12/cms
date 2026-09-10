@@ -6,6 +6,7 @@ class Admin extends CI_Controller {
     public function __construct() {
         parent::__construct();
         $this->load->helper('url');
+        $this->load->library('session');
     }
 
     public function dashboard() {
@@ -32,10 +33,16 @@ class Admin extends CI_Controller {
     public function tags() {
         $this->load->view('admin/tags/index');
     }
+
     public function media() {
         $this->load->view('admin/media/index');
     }
+
     public function users() {
         $this->load->view('admin/users/index');
+    }
+
+    public function settings() {
+        $this->load->view('admin/settings/index');
     }
 }

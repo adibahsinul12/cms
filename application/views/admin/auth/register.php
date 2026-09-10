@@ -160,8 +160,8 @@
             </button>
         </form>
 
-        <div class="login-link">
-            Sudah punya akun? <a href="<?= base_url('auth/login') ?>">Login di sini</a>
+        <div class="login-link"><a href="<?= base_url('login') ?>">Login di sini</a>
+            Sudah punya akun? 
         </div>
     </div>
 
@@ -215,7 +215,7 @@
                         if (res.status === 'success') {
                             showAlert('Registrasi berhasil! Silakan login.', 'success');
                             setTimeout(function() {
-                                window.location.href = '<?= base_url("auth/login") ?>';
+                                window.location.href = '<?= base_url("login") ?>';
                             }, 1500);
                         } else {
                             showAlert(res.message || 'Registrasi gagal!', 'danger');

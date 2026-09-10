@@ -1,12 +1,12 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-$route['default_controller']   = 'home_view/index'; // Landing Page publik sebagai halaman awal
+$route['default_controller']   = 'home_view/index';
 $route['404_override']         = '';
 $route['translate_uri_dashes'] = FALSE;
 
 // ==========================================
-// 1. FRONTEND ADMIN ROUTES (Dibuat Temanmu)
+// 1. FRONTEND ADMIN ROUTES
 // ==========================================
 $route['admin']                  = 'admin/dashboard';
 $route['admin/dashboard']        = 'admin/dashboard';
@@ -47,16 +47,21 @@ $route['api/user/update/(:num)']    = 'api/user/update/$1';
 $route['api/user/delete/(:num)']    = 'api/user/delete/$1';
 
 // ==========================================
-// 5. STAGE 6 - AUTH & PUBLIC ROUTES
+// 5. AUTH & PUBLIC ROUTES
 // ==========================================
-
-// Frontend View Routes
 $route['login']                    = 'auth_view/login';
 $route['register']                 = 'auth_view/register';
-$route['home']                     = 'home_view/index'; // Landing Page utama
+$route['home']                     = 'home_view/index';
 
-// API Routes Auth & Public
 $route['api/auth/login']           = 'api/auth/login';
 $route['api/auth/register']        = 'api/auth/register';
 $route['api/auth/logout']          = 'api/auth/logout';
 $route['api/public/posts']         = 'api/public_posts/index';
+
+// Settings (Frontend)
+$route['admin/settings'] = 'admin/settings';
+
+// API Settings & Post Meta
+$route['api/settings'] = 'api/settings/index';
+$route['api/post/meta'] = 'api/post_meta/save';
+$route['api/post/meta/(:num)'] = 'api/post_meta/get/$1';
