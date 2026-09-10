@@ -60,3 +60,9 @@ $route['api/auth/login']           = 'api/auth/login';
 $route['api/auth/register']        = 'api/auth/register';
 $route['api/auth/logout']          = 'api/auth/logout';
 $route['api/public/posts']         = 'api/public_posts/index';
+
+// ==========================================
+// BACKEND API ROUTES (Stage 4 - INGGRIS REAL)
+// ==========================================
+$route['api/post/meta/(:num)']       = 'api/post/get_meta/$1';
+$route['api/post/save-meta/(:num)']  = 'api/post/save_meta/$1';
