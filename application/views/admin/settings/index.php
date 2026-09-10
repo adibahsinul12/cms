@@ -186,14 +186,12 @@
         $(document).ready(function() {
             loadSettings();
 
-            // Pilih tema
             $(document).on('click', '.theme-card', function() {
                 $('.theme-card').removeClass('active');
                 $(this).addClass('active');
                 $('#active_theme').val($(this).data('theme'));
             });
 
-            // Submit
             $('#settings-form').on('submit', function(e) {
                 e.preventDefault();
                 const data = {
@@ -214,7 +212,7 @@
                         showAlert('Pengaturan berhasil disimpan!', 'success');
                     },
                     error: function() {
-                        showAlert('Gagal menyimpan pengaturan', 'danger');
+                        showAlert('Gagal menyimpan pengaturan (API belum tersedia)', 'warning');
                     }
                 });
             });

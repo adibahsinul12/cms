@@ -52,6 +52,7 @@ $route['api/user/delete/(:num)']    = 'api/user/delete/$1';
 $route['login']                    = 'auth_view/login';
 $route['register']                 = 'auth_view/register';
 $route['home']                     = 'home_view/index';
+$route['admin/settings']           = 'admin/settings';
 
 $route['api/auth/login']           = 'api/auth/login';
 $route['api/auth/register']        = 'api/auth/register';

@@ -196,7 +196,7 @@
                 };
 
                 $.ajax({
-                    url: '<?= base_url("api/post") ?>',
+                    url: '<?= base_url("api/post/create") ?>',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(data),
