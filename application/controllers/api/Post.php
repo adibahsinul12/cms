@@ -23,10 +23,10 @@ class Post extends Base_api {
         
         $this->response([
             'status' => 'success',
-            'data' => $posts,
+            'data'   => $posts,
             'pagination' => [
-                'total' => (int)$total,
-                'limit' => (int)$limit,
+                'total'  => (int)$total,
+                'limit'  => (int)$limit,
                 'offset' => (int)$offset
             ]
         ], 200);
@@ -53,7 +53,7 @@ class Post extends Base_api {
         
         $this->response([
             'status' => 'success',
-            'data' => $post
+            'data'   => $post
         ], 200);
     }
     
@@ -70,16 +70,16 @@ class Post extends Base_api {
         }
         
         $data = [
-            'author_id' => $input_data['author_id'],
-            'type' => isset($input_data['type']) ? $input_data['type'] : 'post',
-            'title' => $input_data['title'],
-            'slug' => $input_data['slug'],
-            'content' => isset($input_data['content']) ? $input_data['content'] : '',
-            'excerpt' => isset($input_data['excerpt']) ? $input_data['excerpt'] : '',
-            'status' => isset($input_data['status']) ? $input_data['status'] : 'draft',
-            'scheduled_at' => isset($input_data['scheduled_at']) ? $input_data['scheduled_at'] : NULL,
-            'category_id' => isset($input_data['category_id']) ? $input_data['category_id'] : NULL,
-            'tag_id' => isset($input_data['tag_id']) ? $input_data['tag_id'] : NULL,
+            'author_id'         => $input_data['author_id'],
+            'type'              => isset($input_data['type']) ? $input_data['type'] : 'post',
+            'title'             => $input_data['title'],
+            'slug'              => $input_data['slug'],
+            'content'           => isset($input_data['content']) ? $input_data['content'] : '',
+            'excerpt'           => isset($input_data['excerpt']) ? $input_data['excerpt'] : '',
+            'status'            => isset($input_data['status']) ? $input_data['status'] : 'draft',
+            'scheduled_at'      => isset($input_data['scheduled_at']) ? $input_data['scheduled_at'] : NULL,
+            'category_id'       => isset($input_data['category_id']) ? $input_data['category_id'] : NULL,
+            'tag_id'            => isset($input_data['tag_id']) ? $input_data['tag_id'] : NULL,
             'featured_image_id' => isset($input_data['featured_image_id']) ? $input_data['featured_image_id'] : NULL
         ];
         
@@ -111,14 +111,14 @@ class Post extends Base_api {
         $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
         
         $data = [
-            'title' => isset($input_data['title']) ? $input_data['title'] : $existing['title'],
-            'slug' => isset($input_data['slug']) ? $input_data['slug'] : $existing['slug'],
-            'content' => isset($input_data['content']) ? $input_data['content'] : $existing['content'],
-            'excerpt' => isset($input_data['excerpt']) ? $input_data['excerpt'] : $existing['excerpt'],
-            'status' => isset($input_data['status']) ? $input_data['status'] : $existing['status'],
-            'scheduled_at' => isset($input_data['scheduled_at']) ? $input_data['scheduled_at'] : $existing['scheduled_at'],
-            'category_id' => isset($input_data['category_id']) ? $input_data['category_id'] : $existing['category_id'],
-            'tag_id' => isset($input_data['tag_id']) ? $input_data['tag_id'] : $existing['tag_id'],
+            'title'             => isset($input_data['title']) ? $input_data['title'] : $existing['title'],
+            'slug'              => isset($input_data['slug']) ? $input_data['slug'] : $existing['slug'],
+            'content'           => isset($input_data['content']) ? $input_data['content'] : $existing['content'],
+            'excerpt'           => isset($input_data['excerpt']) ? $input_data['excerpt'] : $existing['excerpt'],
+            'status'            => isset($input_data['status']) ? $input_data['status'] : $existing['status'],
+            'scheduled_at'      => isset($input_data['scheduled_at']) ? $input_data['scheduled_at'] : $existing['scheduled_at'],
+            'category_id'       => isset($input_data['category_id']) ? $input_data['category_id'] : $existing['category_id'],
+            'tag_id'            => isset($input_data['tag_id']) ? $input_data['tag_id'] : $existing['tag_id'],
             'featured_image_id' => isset($input_data['featured_image_id']) ? $input_data['featured_image_id'] : $existing['featured_image_id']
         ];
         
@@ -166,5 +166,54 @@ class Post extends Base_api {
 
         $revisions = $this->Post_model->get_post_revisions($post_id);
         $this->response_success($revisions, 'Success', 200);
+    }
+
+    /**
+     * POST /api/post/save-meta/{post_id} - Simpan Custom Meta (Stage 4 - INGGRIS)
+     */
+    public function save_meta($post_id = NULL) {
+        if (!$post_id) {
+            $this->response_error('ID Post wajib diisi!', 400);
+            return;
+        }
+
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+        $meta_data = isset($input_data['meta']) ? $input_data['meta'] : $input_data;
+
+        if (empty($meta_data) || !is_array($meta_data)) {
+            $this->response_error('Data meta tidak valid atau kosong!', 400);
+            return;
+        }
+
+        $this->load->model('Post_meta_model');
+        
+        $result = $this->Post_meta_model->sp_save_post_meta($post_id, $meta_data);
+
+        if ($result) {
+            $this->response_success(null, 'Custom meta berhasil disimpan!');
+        } else {
+            $db_error = $this->db->error();
+            $this->response_error('Gagal menyimpan custom meta: ' . $db_error['message'], 500);
+        }
+    }
+
+    /**
+     * GET /api/post/meta/{post_id} - Ambil Custom Meta (Stage 4 - INGGRIS)
+     */
+    public function get_meta($post_id = NULL) {
+        if (!$post_id) {
+            $this->response_error('ID Post wajib diisi!', 400);
+            return;
+        }
+
+        $this->load->model('Post_meta_model');
+        $meta = $this->Post_meta_model->get_meta_by_post($post_id);
+
+        $this->response([
+            'status' => 'success',
+            'data'   => $meta
+        ], 200);
     }
 }
