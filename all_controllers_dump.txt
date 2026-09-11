@@ -1,0 +1,1291 @@
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\api\Auth.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+require_once APPPATH . 'controllers/api/Base_api.php';
+
+class Auth extends Base_api {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('User_model');
+        $this->load->library('session');
+    }
+
+    public function register() {
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+        if (empty($input_data['username']) || empty($input_data['email']) || empty($input_data['password']) || empty($input_data['full_name'])) {
+            $this->response_error('Username, Email, Password, dan Nama Lengkap wajib diisi!', 400);
+            return;
+        }
+        if (!filter_var($input_data['email'], FILTER_VALIDATE_EMAIL)) {
+            $this->response_error('Format email tidak valid!', 400);
+            return;
+        }
+        if (strlen($input_data['password']) < 6) {
+            $this->response_error('Password minimal 6 karakter!', 400);
+            return;
+        }
+
+        // Cek duplikasi username / email
+        $this->db->where('username', $input_data['username']);
+        $this->db->or_where('email', $input_data['email']);
+        $check = $this->db->get('users')->num_rows();
+        if ($check > 0) {
+            $this->response_error('Username atau Email sudah terdaftar!', 400);
+            return;
+        }
+
+        $sql = "CALL sp_register_user(?, ?, ?, ?, ?)";
+        $query = $this->db->query($sql, [
+            2, // HARDCODE: role_id SELALU 2 (User biasa) untuk registrasi publik.
+               // Jangan pernah ambil role_id dari $input_data, karena bisa dimanipulasi
+               // orang lain (misal via Postman) untuk jadi Admin (role_id 1) sendiri.
+            $input_data['username'],
+            $input_data['email'],
+            password_hash($input_data['password'], PASSWORD_BCRYPT),
+            $input_data['full_name']
+        ]);
+
+        $result = $query->row_array();
+
+        if ($result && isset($result['user_id'])) {
+            $this->response_success(['user_id' => $result['user_id']], 'Registrasi berhasil!', 201);
+        } else {
+            $this->response_error('Registrasi gagal!', 500);
+        }
+    }
+
+    public function login() {
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+        $username = isset($input_data['username']) ? trim($input_data['username']) : '';
+        $password = isset($input_data['password']) ? trim($input_data['password']) : '';
+
+        if (empty($username) || empty($password)) {
+            $this->response_error('Username dan Password wajib diisi!', 400);
+            return;
+        }
+
+        $user = $this->User_model->get_by_username($username);
+
+        if (!$user || !password_verify($password, $user['password'])) {
+            $this->response_error('Username atau password salah!', 401);
+            return;
+        }
+
+        if ($user['status'] !== 'active') {
+            $this->response_error('Akun tidak aktif!', 403);
+            return;
+        }
+
+        $this->session->set_userdata([
+            'user_id'   => $user['id'],
+            'username'  => $user['username'],
+            'full_name' => $user['full_name'],
+            'role_id'   => $user['role_id'],
+            'logged_in' => TRUE
+        ]);
+
+        $this->response_success([
+            'user_id'   => $user['id'],
+            'username'  => $user['username'],
+            'full_name' => $user['full_name'],
+            'role_id'   => $user['role_id']
+        ], 'Login berhasil!', 200);
+    }
+
+    public function logout() {
+        $this->session->sess_destroy();
+        $this->response_success(null, 'Logout berhasil', 200);
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\api\Base_api.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+/**
+ * Base API Controller - Semua API Controller extend dari sini
+ *
+ * PENTING: Class ini sendiri TIDAK otomatis memblokir akses.
+ * Tiap controller turunan WAJIB memanggil require_login() atau
+ * require_role([...]) di constructor-nya masing-masing, KECUALI
+ * controller yang memang sengaja publik (mis. Auth::login/register,
+ * Public_posts).
+ */
+class Base_api extends CI_Controller {
+
+    protected $current_user = null;
+
+    public function __construct() {
+        parent::__construct();
+
+        // Set header JSON untuk semua response
+        header('Content-Type: application/json');
+
+        // Enable CORS untuk development
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+
+        // Handle preflight OPTIONS request
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            http_response_code(200);
+            exit;
+        }
+
+        // Library session dibutuhkan oleh require_login/require_role
+        $this->load->library('session');
+    }
+
+    /**
+     * Panggil di constructor controller yang WAJIB login.
+     * Kalau belum login, langsung stop request dengan 401.
+     */
+    protected function require_login() {
+        if (!$this->session->userdata('logged_in')) {
+            $this->response_error('Anda harus login terlebih dahulu.', 401);
+        }
+
+        $this->current_user = [
+            'id'      => $this->session->userdata('user_id'),
+            'role_id' => $this->session->userdata('role_id'),
+        ];
+    }
+
+    /**
+     * Panggil di constructor controller yang WAJIB login DAN
+     * dibatasi role tertentu. Otomatis memanggil require_login()
+     * terlebih dahulu.
+     *
+     * Contoh:
+     *   $this->require_role([1]);       // hanya Admin
+     *   $this->require_role([1, 3]);    // Admin & Editor
+     *   $this->require_role([1, 3, 4]); // Admin, Editor, Author
+     *
+     * Sesuaikan angka role_id dengan isi tabel `roles` di database kamu.
+     */
+    protected function require_role(array $allowed_role_ids) {
+        $this->require_login();
+
+        if (!in_array((int) $this->current_user['role_id'], $allowed_role_ids, true)) {
+            $this->response_error('Anda tidak punya akses ke resource ini.', 403);
+        }
+    }
+
+    /**
+     * Kirim JSON response
+     */
+    protected function response($data, $code = 200) {
+        http_response_code($code);
+        echo json_encode($data);
+        exit;
+    }
+
+    /**
+     * Format response sukses
+     */
+    protected function response_success($data = null, $message = 'Success', $code = 200) {
+        $this->response([
+            'status'  => 'success',
+            'message' => $message,
+            'data'    => $data
+        ], $code);
+    }
+
+    /**
+     * Format response error
+     */
+    protected function response_error($message = 'Error', $code = 400, $errors = null) {
+        $response = [
+            'status'  => 'error',
+            'message' => $message
+        ];
+
+        if ($errors) {
+            $response['errors'] = $errors;
+        }
+
+        $this->response($response, $code);
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\api\Category.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+require_once APPPATH . 'controllers/api/Base_api.php';
+
+class Category extends Base_api {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('Category_model');
+    }
+
+    // [GET] /api/category
+    public function index() {
+        $categories = $this->Category_model->get_all();
+        $this->response_success($categories, 'OK', 200);
+    }
+
+    // [GET] /api/category/(:num)
+    public function detail($id) {
+        $category = $this->Category_model->get_by_id($id);
+        if (!$category) {
+            $this->response_error('Category not found', 404);
+            return;
+        }
+        $this->response_success($category, 'OK', 200);
+    }
+
+    // [POST] /api/category
+    public function create() {
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+        if (empty($input_data['name'])) {
+            $this->response_error('Name wajib diisi!', 400);
+            return;
+        }
+        if (empty($input_data['slug'])) {
+            $this->response_error('Slug wajib diisi!', 400);
+            return;
+        }
+
+        // Cek duplikasi slug
+        $existing_slug = $this->Category_model->get_by_slug($input_data['slug']);
+        if ($existing_slug) {
+            $this->response_error('Slug sudah digunakan!', 400);
+            return;
+        }
+
+        $data = [
+            'name'      => $input_data['name'],
+            'slug'      => $input_data['slug'],
+            'parent_id' => $input_data['parent_id'] ?? null
+        ];
+
+        $id = $this->Category_model->create($data);
+        $this->response_success(['id' => $id], 'Category created', 201);
+    }
+
+    // [PUT] /api/category/(:num)
+    public function update($id) {
+        $existing = $this->Category_model->get_by_id($id);
+        if (!$existing) {
+            $this->response_error('Category not found', 404);
+            return;
+        }
+
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: [];
+
+        $data = [
+            'name'      => $input_data['name'] ?? $existing['name'],
+            'slug'      => $input_data['slug'] ?? $existing['slug'],
+            'parent_id' => $input_data['parent_id'] ?? $existing['parent_id']
+        ];
+
+        $this->Category_model->update($id, $data);
+        $this->response_success(null, 'Category updated', 200);
+    }
+
+    // [DELETE] /api/category/(:num)
+    public function delete($id) {
+        $existing = $this->Category_model->get_by_id($id);
+        if (!$existing) {
+            $this->response_error('Category not found', 404);
+            return;
+        }
+
+        $this->Category_model->delete($id);
+        $this->response_success(null, 'Category deleted', 200);
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\api\Comment.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+require_once APPPATH . 'controllers/api/Base_api.php';
+
+class Comment extends Base_api {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('Comment_model');
+    }
+
+    // [GET] /api/comments - Ambil semua komentar (opsional filter status & post_id)
+    public function index() {
+        $status = $this->input->get('status');
+        $post_id = $this->input->get('post_id');
+        $this->response_success($this->Comment_model->get_all($status, $post_id), 'OK', 200);
+    }
+
+    // [POST] /api/comments/add - Kirim komentar baru
+    public function add() {
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+        if (empty($input_data['post_id']) || !is_numeric($input_data['post_id'])) {
+            $this->response_error('Post ID wajib diisi dan harus berupa angka!', 400);
+            return;
+        }
+        if (empty($input_data['content'])) {
+            $this->response_error('Content wajib diisi!', 400);
+            return;
+        }
+
+        $sql = "CALL sp_add_comment(?, ?, ?, ?, ?, ?)";
+        $query = $this->db->query($sql, [
+            $input_data['post_id'],
+            $input_data['user_id'] ?? null,
+            $input_data['author_name'] ?? null,
+            $input_data['author_email'] ?? null,
+            $input_data['content'],
+            $input_data['parent_id'] ?? null
+        ]);
+
+        $result = $query->row_array();
+
+        $this->response_success(['comment_id' => $result['comment_id']], 'Komentar dikirim, menunggu moderasi', 201);
+    }
+
+    // [POST/PUT] /api/comments/(:num) - Update status komentar
+    public function update($id) {
+        $existing = $this->Comment_model->get_by_id($id);
+        if (!$existing) {
+            $this->response_error('Comment not found', 404);
+            return;
+        }
+
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+        $this->Comment_model->update($id, ['status' => $input_data['status'] ?? $existing['status']]);
+        $this->response_success(null, 'Comment updated', 200);
+    }
+
+    // [POST/DELETE] /api/comments/delete/(:num) - Hapus komentar
+    public function delete($id) {
+        $existing = $this->Comment_model->get_by_id($id);
+        if (!$existing) {
+            $this->response_error('Comment not found', 404);
+            return;
+        }
+
+        $this->Comment_model->delete($id);
+        $this->response_success(null, 'Comment deleted', 200);
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\api\Log.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+require_once APPPATH . 'controllers/api/Base_api.php';
+
+class Log extends Base_api {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->database();
+    }
+
+    // [GET] /api/logs
+    public function index() {
+        $this->db->select('activity_logs.*, users.username as user_name');
+        $this->db->from('activity_logs');
+        $this->db->join('users', 'users.id = activity_logs.user_id', 'left');
+        $this->db->order_by('activity_logs.created_at', 'DESC');
+        $this->db->limit(100);
+
+        $this->response_success($this->db->get()->result_array(), 'OK', 200);
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\api\Media.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+require_once APPPATH . 'controllers/api/Base_api.php';
+
+class Media extends Base_api {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('Media_model');
+        $this->load->helper('url');
+    }
+
+    // Ubah path relatif jadi URL absolut, supaya <img src="..."> tidak salah resolve
+    // relatif terhadap halaman saat ini (admin/media), tapi relatif terhadap root site.
+    private function add_file_url($item) {
+        if (isset($item['file_path'])) {
+            $item['file_url'] = base_url($item['file_path']);
+        }
+        return $item;
+    }
+
+    // [GET] /api/media
+    public function index() {
+        $data = $this->Media_model->get_all();
+        $data = array_map([$this, 'add_file_url'], $data);
+        $this->response_success($data, 'OK', 200);
+    }
+
+    // [GET] /api/media/show/(:num) dan /api/media/(:num)
+    public function detail($id) {
+        $media = $this->Media_model->get_by_id($id);
+        if (!$media) {
+            $this->response_error('Media not found', 404);
+            return;
+        }
+        $this->response_success($this->add_file_url($media), 'OK', 200);
+    }
+
+    // [POST] /api/media/upload - Upload satu file per request (field name: 'file')
+    public function upload() {
+        if (empty($_FILES['file']['name'])) {
+            $this->response_error('No file uploaded', 400);
+            return;
+        }
+
+        $upload_path = FCPATH . 'uploads/media/';
+        if (!is_dir($upload_path)) {
+            mkdir($upload_path, 0755, TRUE);
+        }
+
+        $config['upload_path'] = $upload_path;
+        $config['allowed_types'] = 'jpg|jpeg|png|gif|pdf|doc|docx|xls|xlsx|zip';
+        $config['max_size'] = 10240;
+        $config['encrypt_name'] = TRUE;
+        $this->load->library('upload', $config);
+
+        if (!$this->upload->do_upload('file')) {
+            $this->response_error($this->upload->display_errors('', ''), 400);
+            return;
+        }
+
+        $data = $this->upload->data();
+        $file_ext = ltrim($data['file_ext'], '.'); // simpan ekstensi saja (jpg, png, dst), bukan MIME type
+
+        $sql = "CALL sp_upload_media(?, ?, ?, ?, ?, ?, ?)";
+        $query = $this->db->query($sql, [
+            1, // uploaded_by sementara — TODO: ganti dengan user_id dari session
+            $data['file_name'],
+            'uploads/media/' . $data['file_name'],
+            $file_ext,
+            $data['file_size'],
+            null,
+            null
+        ]);
+
+        $result = $query->row_array();
+
+        $this->response_success([
+            'id'        => $result['media_id'] ?? null,
+            'file_name' => $data['file_name'],
+            'file_path' => 'uploads/media/' . $data['file_name'],
+            'file_url'  => base_url('uploads/media/' . $data['file_name'])
+        ], 'File uploaded', 201);
+    }
+
+    // [PUT] /api/media/update/(:num)
+    public function update($id) {
+        $existing = $this->Media_model->get_by_id($id);
+        if (!$existing) {
+            $this->response_error('Media not found', 404);
+            return;
+        }
+
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: [];
+
+        $data = [
+            'alt_text' => $input_data['alt_text'] ?? $existing['alt_text'],
+            'caption'  => $input_data['caption'] ?? $existing['caption']
+        ];
+
+        $this->Media_model->update($id, $data);
+        $this->response_success(null, 'Media updated', 200);
+    }
+
+    // [DELETE] /api/media/delete/(:num)
+    public function delete($id) {
+        $existing = $this->Media_model->get_by_id($id);
+        if (!$existing) {
+            $this->response_error('Media not found', 404);
+            return;
+        }
+
+        $file_path = FCPATH . $existing['file_path'];
+        if (file_exists($file_path)) {
+            unlink($file_path);
+        }
+
+        $this->Media_model->delete($id);
+        $this->response_success(null, 'Media deleted', 200);
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\api\Post.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+require_once APPPATH . 'controllers/api/Base_api.php';
+
+class Post extends Base_api {
+    
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('Post_model');
+    }
+    
+    /**
+     * GET /api/post - List semua post
+     */
+    public function index() {
+        $limit  = $this->input->get('limit') ? $this->input->get('limit') : 10;
+        $offset = $this->input->get('offset') ? $this->input->get('offset') : 0;
+        $status = $this->input->get('status');
+        
+        $posts = $this->Post_model->get_posts($limit, $offset, $status);
+        $total = $this->Post_model->count_posts($status);
+        
+        $this->response([
+            'status' => 'success',
+            'data'   => $posts,
+            'pagination' => [
+                'total'  => (int)$total,
+                'limit'  => (int)$limit,
+                'offset' => (int)$offset
+            ]
+        ], 200);
+    }
+    
+    /**
+     * GET /api/post/detail/{id} - Detail post
+     */
+    public function detail($id = NULL) {
+        if (!$id) {
+            $this->response_error('ID Post wajib diisi', 400);
+            return;
+        }
+
+        $post = $this->Post_model->get_post_by_id($id);
+        
+        if (!$post) {
+            $this->response_error('Post not found', 404);
+            return;
+        }
+        
+        $revisions = $this->Post_model->get_post_revisions($id);
+        $post['revisions'] = $revisions;
+        
+        $this->response([
+            'status' => 'success',
+            'data'   => $post
+        ], 200);
+    }
+    
+    /**
+     * POST /api/post/create - Create new post
+     */
+    public function create() {
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+        
+        if (empty($input_data['title']) || empty($input_data['slug']) || empty($input_data['author_id'])) {
+            $this->response_error('Title, Slug, dan Author ID wajib diisi!', 400);
+            return;
+        }
+        
+        $data = [
+            'author_id'         => $input_data['author_id'],
+            'type'              => isset($input_data['type']) ? $input_data['type'] : 'post',
+            'title'             => $input_data['title'],
+            'slug'              => $input_data['slug'],
+            'content'           => isset($input_data['content']) ? $input_data['content'] : '',
+            'excerpt'           => isset($input_data['excerpt']) ? $input_data['excerpt'] : '',
+            'status'            => isset($input_data['status']) ? $input_data['status'] : 'draft',
+            'scheduled_at'      => isset($input_data['scheduled_at']) ? $input_data['scheduled_at'] : NULL,
+            'category_id'       => isset($input_data['category_id']) ? $input_data['category_id'] : NULL,
+            'tag_id'            => isset($input_data['tag_id']) ? $input_data['tag_id'] : NULL,
+            'featured_image_id' => isset($input_data['featured_image_id']) ? $input_data['featured_image_id'] : NULL
+        ];
+        
+        $post_id = $this->Post_model->create_post($data);
+        
+        if ($post_id) {
+            $this->response_success(['post_id' => $post_id], 'Post created successfully', 201);
+        } else {
+            $this->response_error('Failed to create post', 500);
+        }
+    }
+    
+    /**
+     * PUT/POST /api/post/update/{id} - Update post
+     */
+    public function update($id = NULL) {
+        if (!$id) {
+            $this->response_error('ID Post wajib diisi', 400);
+            return;
+        }
+
+        $existing = $this->Post_model->get_post_by_id($id);
+        if (!$existing) {
+            $this->response_error('Post not found', 404);
+            return;
+        }
+        
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+        
+        $data = [
+            'title'             => isset($input_data['title']) ? $input_data['title'] : $existing['title'],
+            'slug'              => isset($input_data['slug']) ? $input_data['slug'] : $existing['slug'],
+            'content'           => isset($input_data['content']) ? $input_data['content'] : $existing['content'],
+            'excerpt'           => isset($input_data['excerpt']) ? $input_data['excerpt'] : $existing['excerpt'],
+            'status'            => isset($input_data['status']) ? $input_data['status'] : $existing['status'],
+            'scheduled_at'      => isset($input_data['scheduled_at']) ? $input_data['scheduled_at'] : $existing['scheduled_at'],
+            'category_id'       => isset($input_data['category_id']) ? $input_data['category_id'] : $existing['category_id'],
+            'tag_id'            => isset($input_data['tag_id']) ? $input_data['tag_id'] : $existing['tag_id'],
+            'featured_image_id' => isset($input_data['featured_image_id']) ? $input_data['featured_image_id'] : $existing['featured_image_id']
+        ];
+        
+        $result = $this->Post_model->update_post($id, $data);
+        
+        if ($result) {
+            $this->response_success(null, 'Post updated successfully', 200);
+        } else {
+            $this->response_error('Failed to update post', 500);
+        }
+    }
+    
+    /**
+     * DELETE /api/post/delete/{id} - Delete post
+     */
+    public function delete($id = NULL) {
+        if (!$id) {
+            $this->response_error('ID Post wajib diisi', 400);
+            return;
+        }
+
+        $existing = $this->Post_model->get_post_by_id($id);
+        if (!$existing) {
+            $this->response_error('Post not found', 404);
+            return;
+        }
+        
+        $result = $this->Post_model->delete_post($id);
+        
+        if ($result) {
+            $this->response_success(null, 'Post deleted successfully', 200);
+        } else {
+            $this->response_error('Failed to delete post', 500);
+        }
+    }
+    
+    /**
+     * GET /api/post/revisions/{post_id} - Ambil revisi
+     */
+    public function revisions($post_id = NULL) {
+        if (!$post_id) {
+            $this->response_error('Post ID wajib diisi', 400);
+            return;
+        }
+
+        $revisions = $this->Post_model->get_post_revisions($post_id);
+        $this->response_success($revisions, 'Success', 200);
+    }
+
+    /**
+     * POST /api/post/save-meta/{post_id} - Simpan Custom Meta (Stage 4 - INGGRIS)
+     */
+    public function save_meta($post_id = NULL) {
+        if (!$post_id) {
+            $this->response_error('ID Post wajib diisi!', 400);
+            return;
+        }
+
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+        $meta_data = isset($input_data['meta']) ? $input_data['meta'] : $input_data;
+
+        if (empty($meta_data) || !is_array($meta_data)) {
+            $this->response_error('Data meta tidak valid atau kosong!', 400);
+            return;
+        }
+
+        $this->load->model('Post_meta_model');
+        
+        $result = $this->Post_meta_model->sp_save_post_meta($post_id, $meta_data);
+
+        if ($result) {
+            $this->response_success(null, 'Custom meta berhasil disimpan!');
+        } else {
+            $db_error = $this->db->error();
+            $this->response_error('Gagal menyimpan custom meta: ' . $db_error['message'], 500);
+        }
+    }
+
+    /**
+     * GET /api/post/meta/{post_id} - Ambil Custom Meta (Stage 4 - INGGRIS)
+     */
+    public function get_meta($post_id = NULL) {
+        if (!$post_id) {
+            $this->response_error('ID Post wajib diisi!', 400);
+            return;
+        }
+
+        $this->load->model('Post_meta_model');
+        $meta = $this->Post_meta_model->get_meta_by_post($post_id);
+
+        $this->response([
+            'status' => 'success',
+            'data'   => $meta
+        ], 200);
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\api\Post_meta.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+$route['default_controller']   = 'home_view/index';
+$route['404_override']         = '';
+$route['translate_uri_dashes'] = FALSE;
+
+// ==========================================
+// FRONTEND ADMIN ROUTES
+// ==========================================
+$route['admin']                  = 'admin/dashboard';
+$route['admin/dashboard']        = 'admin/dashboard';
+$route['admin/posts']            = 'admin/posts';
+$route['admin/posts/create']     = 'admin/create_post';
+$route['admin/posts/edit/(:num)'] = 'admin/edit_post/$1';
+$route['admin/categories']       = 'admin/categories';
+$route['admin/tags']             = 'admin/tags';
+$route['admin/media']            = 'admin/media';
+$route['admin/users']            = 'admin/users';
+$route['admin/settings']         = 'admin/settings';
+$route['admin/comments']         = 'admin/comments';
+$route['admin/logs']             = 'admin/logs';
+$route['admin/seo']              = 'admin/seo';
+
+// ==========================================
+// STAGE 1 - INDONESIA (Posts, Category, Tag)
+// ==========================================
+$route['api/post']                  = 'api/post/index';
+$route['api/post/detail/(:num)']    = 'api/post/detail/$1';
+$route['api/post/create']           = 'api/post/create';
+$route['api/post/update/(:num)']    = 'api/post/update/$1';
+$route['api/post/delete/(:num)']    = 'api/post/delete/$1';
+$route['api/post/revisions/(:num)'] = 'api/post/revisions/$1';
+
+$route['api/category']               = 'api/category/index';
+$route['api/category/create']        = 'api/category/create';
+$route['api/category/update/(:num)'] = 'api/category/update/$1';
+$route['api/category/delete/(:num)'] = 'api/category/delete/$1';
+$route['api/category/(:num)']        = 'api/category/detail/$1';
+
+$route['api/tag']                   = 'api/tag/index';
+$route['api/tag/create']            = 'api/tag/create';
+$route['api/tag/update/(:num)']     = 'api/tag/update/$1';
+$route['api/tag/delete/(:num)']     = 'api/tag/delete/$1';
+$route['api/tag/(:num)']            = 'api/tag/detail/$1';
+
+// ==========================================
+// STAGE 2 - JEPANG (Media)
+// ==========================================
+$route['api/media']                  = 'api/media/index';
+$route['api/media/(:num)']           = 'api/media/detail/$1';
+$route['api/media/upload']           = 'api/media/upload';
+$route['api/media/update/(:num)']    = 'api/media/update/$1';
+$route['api/media/delete/(:num)']    = 'api/media/delete/$1';
+
+// ==========================================
+// STAGE 3 - JERMAN (Auth & User)
+// ==========================================
+$route['api/auth/login']             = 'api/auth/login';
+$route['api/auth/register']          = 'api/auth/register';
+$route['api/auth/logout']            = 'api/auth/logout';
+
+$route['api/user']                   = 'api/user/index';
+$route['api/user/roles']             = 'api/user/roles';
+$route['api/user/detail/(:num)']     = 'api/user/detail/$1';
+$route['api/user/create']            = 'api/user/create';
+$route['api/user/update/(:num)']     = 'api/user/update/$1';
+$route['api/user/delete/(:num)']     = 'api/user/delete/$1';
+
+// ==========================================
+// STAGE 4 - INGGRIS (Settings, SEO, Post Meta)
+// ==========================================
+$route['api/settings']               = 'api/settings/index';
+$route['api/seo']                    = 'api/seo/index';
+$route['api/post/meta']              = 'api/post_meta/index';
+$route['api/post/meta/(:num)']       = 'api/post_meta/detail/$1';
+
+// ==========================================
+// STAGE 5 - AMERIKA (Comment, Log)
+// ==========================================
+$route['api/comments']               = 'api/comment/index';
+$route['api/comments/add']           = 'api/comment/add';
+$route['api/comments/(:num)']        = 'api/comment/update/$1';
+$route['api/comments/delete/(:num)'] = 'api/comment/delete/$1';
+
+$route['api/logs']                   = 'api/log/index';
+
+// ==========================================
+// AUTH VIEW & FRONTEND
+// ==========================================
+$route['login']                      = 'auth_view/login';
+$route['register']                   = 'auth_view/register';
+$route['home']                       = 'home_view/index';
+$route['api/public/posts']           = 'api/public_posts/index';
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\api\Public_posts.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+require_once APPPATH . 'controllers/api/Base_api.php';
+
+class Public_posts extends Base_api {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('Post_model');
+    }
+
+    // [GET] /api/public/posts
+    public function index() {
+        $posts = $this->Post_model->get_posts(6, 0, 'published');
+        $total = $this->Post_model->count_posts('published');
+
+        $this->response([
+            'status' => 'success',
+            'data'   => $posts ? $posts : [],
+            'pagination' => [
+                'total'  => (int)$total,
+                'limit'  => 6,
+                'offset' => 0
+            ]
+        ], 200);
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\api\Seo.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+require_once APPPATH . 'controllers/api/Base_api.php';
+
+class Seo extends Base_api {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('Option_model');
+    }
+
+    // [GET] Ambil semua SEO settings, [POST] Simpan SEO settings — satu URL dua fungsi
+    public function index() {
+        if ($this->input->method() === 'post') {
+            $raw_input = file_get_contents('php://input');
+            $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+            $allowed_keys = ['meta_title', 'meta_description', 'meta_keywords', 'og_title', 'og_description', 'og_image', 'enable_sitemap', 'enable_robots'];
+            $data = array_intersect_key($input_data, array_flip($allowed_keys));
+            $data = array_filter($data, function($v) { return $v !== null; });
+
+            $this->Option_model->set_multiple($data);
+            $this->response_success(null, 'SEO settings saved', 200);
+            return;
+        }
+
+        $keys = ['meta_title', 'meta_description', 'meta_keywords', 'og_title', 'og_description', 'og_image', 'enable_sitemap', 'enable_robots'];
+        $data = [];
+        foreach ($keys as $key) {
+            $data[$key] = $this->Option_model->get($key, '');
+        }
+        $this->response_success($data, 'OK', 200);
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\api\Settings.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+require_once APPPATH . 'controllers/api/Base_api.php';
+
+class Settings extends Base_api {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('Option_model');
+    }
+
+    // [GET] Ambil semua settings, [POST] Simpan settings — satu URL dua fungsi
+    public function index() {
+        if ($this->input->method() === 'post') {
+            $raw_input = file_get_contents('php://input');
+            $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+            $allowed_keys = ['site_name', 'site_description', 'admin_email', 'site_url', 'footer_text', 'active_theme'];
+            $data = array_intersect_key($input_data, array_flip($allowed_keys));
+            $data = array_filter($data, function($v) { return $v !== null; });
+
+            $this->Option_model->set_multiple($data);
+            $this->response_success(null, 'Settings saved', 200);
+            return;
+        }
+
+        $this->response_success($this->Option_model->get_all(), 'OK', 200);
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\api\Tag.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+require_once APPPATH . 'controllers/api/Base_api.php';
+
+class Tag extends Base_api {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('Tag_model');
+    }
+
+    // [GET] /api/tag
+    public function index() {
+        $this->response_success($this->Tag_model->get_all(), 'OK', 200);
+    }
+
+    // [GET] /api/tag/(:num)
+    public function detail($id) {
+        $tag = $this->Tag_model->get_by_id($id);
+        if (!$tag) {
+            $this->response_error('Tag not found', 404);
+            return;
+        }
+        $this->response_success($tag, 'OK', 200);
+    }
+
+    // [POST] /api/tag/create
+    public function create() {
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+        if (empty($input_data['name'])) {
+            $this->response_error('Name wajib diisi!', 400);
+            return;
+        }
+        if (empty($input_data['slug'])) {
+            $this->response_error('Slug wajib diisi!', 400);
+            return;
+        }
+
+        $existing_slug = $this->Tag_model->get_by_slug($input_data['slug']);
+        if ($existing_slug) {
+            $this->response_error('Slug sudah digunakan!', 400);
+            return;
+        }
+
+        $data = [
+            'name' => $input_data['name'],
+            'slug' => $input_data['slug']
+        ];
+
+        $id = $this->Tag_model->create($data);
+        $this->response_success(['id' => $id], 'Tag created', 201);
+    }
+
+    // [PUT] /api/tag/update/(:num)
+    public function update($id) {
+        $existing = $this->Tag_model->get_by_id($id);
+        if (!$existing) {
+            $this->response_error('Tag not found', 404);
+            return;
+        }
+
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: [];
+
+        $data = [
+            'name' => $input_data['name'] ?? $existing['name'],
+            'slug' => $input_data['slug'] ?? $existing['slug']
+        ];
+
+        $this->Tag_model->update($id, $data);
+        $this->response_success(null, 'Tag updated', 200);
+    }
+
+    // [DELETE] /api/tag/delete/(:num)
+    public function delete($id) {
+        $existing = $this->Tag_model->get_by_id($id);
+        if (!$existing) {
+            $this->response_error('Tag not found', 404);
+            return;
+        }
+
+        $this->Tag_model->delete($id);
+        $this->response_success(null, 'Tag deleted', 200);
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\api\User.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+require_once APPPATH . 'controllers/api/Base_api.php';
+
+class User extends Base_api {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->model('User_model');
+    }
+
+    // [GET] /api/user
+    public function index() {
+        $this->response_success($this->User_model->get_all(), 'OK', 200);
+    }
+
+    // [GET] /api/user/roles
+    public function roles() {
+        $this->response_success($this->User_model->get_roles(), 'OK', 200);
+    }
+
+    // [GET] /api/user/detail/(:num)
+    public function detail($id) {
+        $user = $this->User_model->get_by_id($id);
+        if (!$user) {
+            $this->response_error('User not found', 404);
+            return;
+        }
+        $this->response_success($user, 'OK', 200);
+    }
+
+    // [POST] /api/user/create
+    public function create() {
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+        if (empty($input_data['username']) || empty($input_data['email']) || empty($input_data['password']) || empty($input_data['full_name']) || empty($input_data['role_id'])) {
+            $this->response_error('Username, Email, Password, Full Name, dan Role wajib diisi!', 400);
+            return;
+        }
+        if (!filter_var($input_data['email'], FILTER_VALIDATE_EMAIL)) {
+            $this->response_error('Format email tidak valid!', 400);
+            return;
+        }
+        if (strlen($input_data['password']) < 6) {
+            $this->response_error('Password minimal 6 karakter!', 400);
+            return;
+        }
+
+        $this->db->where('username', $input_data['username']);
+        $this->db->or_where('email', $input_data['email']);
+        $check = $this->db->get('users')->num_rows();
+        if ($check > 0) {
+            $this->response_error('Username atau Email sudah terdaftar!', 400);
+            return;
+        }
+
+        $data = [
+            'role_id'   => $input_data['role_id'],
+            'username'  => $input_data['username'],
+            'email'     => $input_data['email'],
+            'password'  => password_hash($input_data['password'], PASSWORD_BCRYPT),
+            'full_name' => $input_data['full_name'],
+            'status'    => $input_data['status'] ?? 'active'
+        ];
+
+        $id = $this->User_model->create($data);
+        $this->response_success(['id' => $id], 'User created', 201);
+    }
+
+    // [PUT] /api/user/update/(:num)
+    public function update($id) {
+        $existing = $this->User_model->get_by_id($id);
+        if (!$existing) {
+            $this->response_error('User not found', 404);
+            return;
+        }
+
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: [];
+
+        $data = [
+            'role_id'   => $input_data['role_id'] ?? $existing['role_id'],
+            'username'  => $input_data['username'] ?? $existing['username'],
+            'email'     => $input_data['email'] ?? $existing['email'],
+            'full_name' => $input_data['full_name'] ?? $existing['full_name'],
+            'status'    => $input_data['status'] ?? $existing['status']
+        ];
+
+        if (!empty($input_data['password'])) {
+            $data['password'] = password_hash($input_data['password'], PASSWORD_BCRYPT);
+        }
+
+        $this->User_model->update($id, $data);
+        $this->response_success(null, 'User updated', 200);
+    }
+
+    // [DELETE] /api/user/delete/(:num)
+    public function delete($id) {
+        $existing = $this->User_model->get_by_id($id);
+        if (!$existing) {
+            $this->response_error('User not found', 404);
+            return;
+        }
+
+        $this->User_model->delete($id);
+        $this->response_success(null, 'User deleted', 200);
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\Admin.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class Admin extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->helper('url');
+        $this->load->library('session');
+
+        // 1. Cek apakah user sudah login
+        if (!$this->session->userdata('logged_in')) {
+            redirect('auth_view/login'); // sesuaikan dengan route halaman login kamu
+            exit;
+        }
+
+        // 2. Cek role: hanya Admin (1) dan Editor (3) yang boleh akses dashboard
+        $role_id = $this->session->userdata('role_id');
+        if (!in_array($role_id, [1, 3])) {
+            show_error('Akses Ditolak: Anda tidak memiliki izin mengakses Halaman Admin.', 403, 'Forbidden');
+            exit;
+        }
+    }
+
+    public function dashboard() { $this->load->view('admin/dashboard'); }
+    public function posts() { $this->load->view('admin/posts/index'); }
+    public function create_post() { $this->load->view('admin/posts/create'); }
+    public function edit_post($id) { $data['post_id'] = $id; $this->load->view('admin/posts/edit', $data); }
+    public function categories() { $this->load->view('admin/categories/index'); }
+    public function tags() { $this->load->view('admin/tags/index'); }
+    public function media() { $this->load->view('admin/media/index'); }
+    public function users() { $this->load->view('admin/users/index'); }
+    public function settings() { $this->load->view('admin/settings/index'); }
+    public function comments() { $this->load->view('admin/comments/index'); }
+    public function logs() { $this->load->view('admin/logs/index'); }
+    public function seo() { $this->load->view('admin/seo/index'); }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\Auth_view.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class Auth_view extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->helper('url');
+    }
+
+    public function login() {
+        $this->load->view('auth/login');
+    }
+
+    public function register() {
+        $this->load->view('auth/register');
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\Home_view.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class Home_view extends CI_Controller {
+
+    public function __construct() {
+        parent::__construct();
+        $this->load->helper('url');
+    }
+
+    public function index() {
+        $this->load->view('home');
+    }
+}
+
+
+===== FILE: C:\xampp\htdocs\cms\application\controllers\Welcome.php =====
+
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+
+class Welcome extends CI_Controller {
+
+	/**
+	 * Index Page for this controller.
+	 *
+	 * Maps to the following URL
+	 * 		http://example.com/index.php/welcome
+	 *	- or -
+	 * 		http://example.com/index.php/welcome/index
+	 *	- or -
+	 * Since this controller is set as the default controller in
+	 * config/routes.php, it's displayed at http://example.com/
+	 *
+	 * So any other public methods not prefixed with an underscore will
+	 * map to /index.php/welcome/<method_name>
+	 * @see https://codeigniter.com/userguide3/general/urls.html
+	 */
+	public function index()
+	{
+		$this->load->view('welcome_message');
+	}
+}

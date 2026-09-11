@@ -39,7 +39,9 @@ class Auth extends Base_api {
 
         $sql = "CALL sp_register_user(?, ?, ?, ?, ?)";
         $query = $this->db->query($sql, [
-            $input_data['role_id'] ?? 2, // default role_id = 2 (User), sesuaikan dengan tabel roles
+            2, // HARDCODE: role_id SELALU 2 (User biasa) untuk registrasi publik.
+               // Jangan pernah ambil role_id dari $input_data, karena bisa dimanipulasi
+               // orang lain (misal via Postman) untuk jadi Admin (role_id 1) sendiri.
             $input_data['username'],
             $input_data['email'],
             password_hash($input_data['password'], PASSWORD_BCRYPT),

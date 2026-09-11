@@ -6,6 +6,20 @@ class Admin extends CI_Controller {
     public function __construct() {
         parent::__construct();
         $this->load->helper('url');
+        $this->load->library('session');
+
+        // 1. Cek apakah user sudah login
+        if (!$this->session->userdata('logged_in')) {
+            redirect('auth_view/login'); // sesuaikan dengan route halaman login kamu
+            exit;
+        }
+
+        // 2. Cek role: hanya Admin (1) dan Editor (3) yang boleh akses dashboard
+        $role_id = $this->session->userdata('role_id');
+        if (!in_array($role_id, [1, 3])) {
+            show_error('Akses Ditolak: Anda tidak memiliki izin mengakses Halaman Admin.', 403, 'Forbidden');
+            exit;
+        }
     }
 
     public function dashboard() { $this->load->view('admin/dashboard'); }

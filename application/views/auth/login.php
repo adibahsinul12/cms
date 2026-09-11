@@ -289,7 +289,7 @@
         <div class="panel-form">
             <div class="form-card">
                 <h2>Masuk CMS</h2>
-                <p class="lead">Gunakan akun pegawai untuk melanjutkan.</p>
+                <p class="lead">Gunakan akun yang sudah dibuat untuk melanjutkan.</p>
 
                 <div id="alert-msg" class="alert"></div>
 

@@ -288,7 +288,7 @@
             <a class="brand" href="#">
                 <span class="mark">🌐</span> Portal Diskominfo
             </a>
-            <a href="<?= base_url('login') ?>" class="btn-login">Login Pegawai</a>
+            <a href="<?= base_url('login') ?>" class="btn-login">Login</a>
         </div>
     </nav>
 
