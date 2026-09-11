@@ -19,7 +19,8 @@ $route['admin/media']            = 'admin/media';
 $route['admin/users']            = 'admin/users';
 $route['admin/comments']         = 'admin/comments';
 $route['admin/settings']         = 'admin/settings';
-
+$route['admin/logs'] = 'admin/logs';
+$route['admin/seo'] = 'admin/seo';
 // ==========================================
 // 2. BACKEND API ROUTES (Stage 1 - INDONESIA)
 // ==========================================
