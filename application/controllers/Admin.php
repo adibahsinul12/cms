@@ -48,5 +48,4 @@ class Admin extends CI_Controller {
     public function comments() {
         $this->load->view('admin/comments/index');
     }
-
 }
