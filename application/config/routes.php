@@ -54,19 +54,19 @@ $route['api/user/delete/(:num)']    = 'api/user/delete/$1';
 // Frontend View Routes
 $route['login']                    = 'auth_view/login';
 $route['register']                 = 'auth_view/register';
-<<<<<<< HEAD
+ HEAD
 $route['home']                     = 'home_view/index';
 $route['admin/settings']           = 'admin/settings';
 =======
 $route['home']                     = 'home_view/index'; // Landing Page utama
->>>>>>> cedba02689090a83cd9ef2661c930ac9c8daabb0
+ cedba02689090a83cd9ef2661c930ac9c8daabb0
 
 // API Routes Auth & Public
 $route['api/auth/login']           = 'api/auth/login';
 $route['api/auth/register']        = 'api/auth/register';
 $route['api/auth/logout']          = 'api/auth/logout';
 $route['api/public/posts']         = 'api/public_posts/index';
-<<<<<<< HEAD
+ HEAD
 =======
 
 // ==========================================
@@ -75,4 +75,4 @@ $route['api/public/posts']         = 'api/public_posts/index';
 $route['api/post/meta/(:num)']      = 'api/post/get_meta/$1';
 $route['api/post/save-meta/(:num)'] = 'api/post/save_meta/$1';
 $route['api/settings']              = 'api/settings/index';
->>>>>>> cedba02689090a83cd9ef2661c930ac9c8daabb0
+ cedba02689090a83cd9ef2661c930ac9c8daabb0
