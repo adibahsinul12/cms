@@ -4,67 +4,85 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 require_once APPPATH . 'controllers/api/Base_api.php';
 
 class Tag extends Base_api {
-    
+
     public function __construct() {
         parent::__construct();
         $this->load->model('Tag_model');
     }
-    
-    public function index_get() {
-        $this->response(['status' => 'success', 'data' => $this->Tag_model->get_all()], 200);
+
+    // [GET] /api/tag
+    public function index() {
+        $this->response_success($this->Tag_model->get_all(), 'OK', 200);
     }
-    
-    public function detail_get($id) {
+
+    // [GET] /api/tag/(:num)
+    public function detail($id) {
         $tag = $this->Tag_model->get_by_id($id);
         if (!$tag) {
-            $this->response(['status' => 'error', 'message' => 'Tag not found'], 404);
+            $this->response_error('Tag not found', 404);
             return;
         }
-        $this->response(['status' => 'success', 'data' => $tag], 200);
+        $this->response_success($tag, 'OK', 200);
     }
-    
-    public function index_post() {
-        $this->form_validation->set_rules('name', 'Name', 'required');
-        $this->form_validation->set_rules('slug', 'Slug', 'required|is_unique[tags.slug]');
-        
-        if ($this->form_validation->run() == FALSE) {
-            $this->response(['status' => 'error', 'errors' => $this->form_validation->error_array()], 400);
+
+    // [POST] /api/tag/create
+    public function create() {
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+        if (empty($input_data['name'])) {
+            $this->response_error('Name wajib diisi!', 400);
             return;
         }
-        
+        if (empty($input_data['slug'])) {
+            $this->response_error('Slug wajib diisi!', 400);
+            return;
+        }
+
+        $existing_slug = $this->Tag_model->get_by_slug($input_data['slug']);
+        if ($existing_slug) {
+            $this->response_error('Slug sudah digunakan!', 400);
+            return;
+        }
+
         $data = [
-            'name' => $this->post('name'),
-            'slug' => $this->post('slug')
+            'name' => $input_data['name'],
+            'slug' => $input_data['slug']
         ];
-        
+
         $id = $this->Tag_model->create($data);
-        $this->response(['status' => 'success', 'message' => 'Tag created', 'data' => ['id' => $id]], 201);
+        $this->response_success(['id' => $id], 'Tag created', 201);
     }
-    
-    public function index_put($id) {
+
+    // [PUT] /api/tag/update/(:num)
+    public function update($id) {
         $existing = $this->Tag_model->get_by_id($id);
         if (!$existing) {
-            $this->response(['status' => 'error', 'message' => 'Tag not found'], 404);
+            $this->response_error('Tag not found', 404);
             return;
         }
-        
+
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: [];
+
         $data = [
-            'name' => $this->put('name'),
-            'slug' => $this->put('slug')
+            'name' => $input_data['name'] ?? $existing['name'],
+            'slug' => $input_data['slug'] ?? $existing['slug']
         ];
-        
+
         $this->Tag_model->update($id, $data);
-        $this->response(['status' => 'success', 'message' => 'Tag updated'], 200);
+        $this->response_success(null, 'Tag updated', 200);
     }
-    
-    public function index_delete($id) {
+
+    // [DELETE] /api/tag/delete/(:num)
+    public function delete($id) {
         $existing = $this->Tag_model->get_by_id($id);
         if (!$existing) {
-            $this->response(['status' => 'error', 'message' => 'Tag not found'], 404);
+            $this->response_error('Tag not found', 404);
             return;
         }
-        
+
         $this->Tag_model->delete($id);
-        $this->response(['status' => 'success', 'message' => 'Tag deleted'], 200);
+        $this->response_success(null, 'Tag deleted', 200);
     }
 }

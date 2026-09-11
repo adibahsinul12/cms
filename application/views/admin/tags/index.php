@@ -11,7 +11,7 @@
     <div class="container-fluid">
         <div class="row">
             <?php
-                $active_menu = 'posts'; // atau 'categories' / 'tags' sesuai halamannya
+                $active_menu = 'tags'; // atau 'categories' / 'tags' sesuai halamannya
                 $this->load->view('admin/partials/sidebar', ['active_menu' => $active_menu]);
             ?>
             <!-- MAIN CONTENT -->

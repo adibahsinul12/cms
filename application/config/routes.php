@@ -32,18 +32,26 @@ $route['api/post/update/(:num)']    = 'api/post/update/$1';
 $route['api/post/delete/(:num)']    = 'api/post/delete/$1';
 $route['api/post/revisions/(:num)'] = 'api/post/revisions/$1';
 
-$route['api/category']              = 'api/category/index';
-$route['api/category/(:num)']       = 'api/category/detail/$1';
+$route['api/category']               = 'api/category/index';
+$route['api/category/create']        = 'api/category/create';
+$route['api/category/update/(:num)'] = 'api/category/update/$1';
+$route['api/category/delete/(:num)'] = 'api/category/delete/$1';
+$route['api/category/(:num)']        = 'api/category/detail/$1';
 
 $route['api/tag']                   = 'api/tag/index';
+$route['api/tag/create']            = 'api/tag/create';
+$route['api/tag/update/(:num)']     = 'api/tag/update/$1';
+$route['api/tag/delete/(:num)']     = 'api/tag/delete/$1';
 $route['api/tag/(:num)']            = 'api/tag/detail/$1';
 
 // ==========================================
 // STAGE 2 - JEPANG (Media)
 // ==========================================
 $route['api/media']                  = 'api/media/index';
+$route['api/media/show/(:num)']      = 'api/media/detail/$1';
 $route['api/media/(:num)']           = 'api/media/detail/$1';
 $route['api/media/upload']           = 'api/media/upload';
+$route['api/media/update/(:num)']    = 'api/media/update/$1';
 $route['api/media/delete/(:num)']    = 'api/media/delete/$1';
 
 // ==========================================

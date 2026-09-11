@@ -13,20 +13,10 @@
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- SIDEBAR -->
-            <nav class="col-md-2 d-md-block bg-dark sidebar">
-                <div class="position-sticky pt-3">
-                    <h5 class="text-white text-center py-3">📝 CMS Admin</h5>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/posts') ?>"><i class="fas fa-file-alt"></i> Posts</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/categories') ?>"><i class="fas fa-tags"></i> Categories</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/tags') ?>"><i class="fas fa-tag"></i> Tags</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/media') ?>"><i class="fas fa-images"></i> Media</a></li>
-                        <li class="nav-item"><a class="nav-link text-white active" href="<?= base_url('admin/users') ?>"><i class="fas fa-users"></i> Users</a></li>
-                    </ul>
-                </div>
-            </nav>
+<?php
+    $active_menu = 'users'; // sesuaikan: 'posts', 'categories', 'tags', 'media', 'users', 'settings', 'seo', 'comments', 'logs'
+    $this->load->view('admin/partials/sidebar', ['active_menu' => $active_menu]);
+?>
 
             <!-- MAIN CONTENT -->
             <main class="col-md-10 ms-sm-auto px-md-4">
@@ -136,7 +126,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         
-        let modaconst API_URL = '<?= base_url("api/user") ?>';
+let userModal = new bootstrap.Modal(document.getElementById('userModal'));
+const API_URL = '<?= base_url("api/user") ?>';
 
         $(document).ready(function() {
             loadUsers();

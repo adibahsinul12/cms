@@ -4,63 +4,72 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 require_once APPPATH . 'controllers/api/Base_api.php';
 
 class Comment extends Base_api {
-    
+
     public function __construct() {
         parent::__construct();
         $this->load->model('Comment_model');
     }
-    
-    public function index_get() {
-        $status = $this->get('status');
-        $post_id = $this->get('post_id');
-        $this->response(['status' => 'success', 'data' => $this->Comment_model->get_all($status, $post_id)], 200);
+
+    // [GET] /api/comments - Ambil semua komentar (opsional filter status & post_id)
+    public function index() {
+        $status = $this->input->get('status');
+        $post_id = $this->input->get('post_id');
+        $this->response_success($this->Comment_model->get_all($status, $post_id), 'OK', 200);
     }
-    
-    public function add_post() {
-        $this->form_validation->set_rules('post_id', 'Post ID', 'required|numeric');
-        $this->form_validation->set_rules('content', 'Content', 'required');
-        
-        if ($this->form_validation->run() == FALSE) {
-            $this->response(['status' => 'error', 'errors' => $this->form_validation->error_array()], 400);
+
+    // [POST] /api/comments/add - Kirim komentar baru
+    public function add() {
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+        if (empty($input_data['post_id']) || !is_numeric($input_data['post_id'])) {
+            $this->response_error('Post ID wajib diisi dan harus berupa angka!', 400);
             return;
         }
-        
+        if (empty($input_data['content'])) {
+            $this->response_error('Content wajib diisi!', 400);
+            return;
+        }
+
         $sql = "CALL sp_add_comment(?, ?, ?, ?, ?, ?)";
         $query = $this->db->query($sql, [
-            $this->post('post_id'),
-            $this->post('user_id') ?: null,
-            $this->post('author_name'),
-            $this->post('author_email'),
-            $this->post('content'),
-            $this->post('parent_id') ?: null
+            $input_data['post_id'],
+            $input_data['user_id'] ?? null,
+            $input_data['author_name'] ?? null,
+            $input_data['author_email'] ?? null,
+            $input_data['content'],
+            $input_data['parent_id'] ?? null
         ]);
-        
+
         $result = $query->row_array();
-        $query->next_result();
-        $query->free_result();
-        
-        $this->response(['status' => 'success', 'message' => 'Komentar dikirim, menunggu moderasi', 'data' => ['comment_id' => $result['comment_id']]], 201);
+
+        $this->response_success(['comment_id' => $result['comment_id']], 'Komentar dikirim, menunggu moderasi', 201);
     }
-    
-    public function update_put($id) {
+
+    // [POST/PUT] /api/comments/(:num) - Update status komentar
+    public function update($id) {
         $existing = $this->Comment_model->get_by_id($id);
         if (!$existing) {
-            $this->response(['status' => 'error', 'message' => 'Comment not found'], 404);
+            $this->response_error('Comment not found', 404);
             return;
         }
-        
-        $this->Comment_model->update($id, ['status' => $this->put('status')]);
-        $this->response(['status' => 'success', 'message' => 'Comment updated'], 200);
+
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+        $this->Comment_model->update($id, ['status' => $input_data['status'] ?? $existing['status']]);
+        $this->response_success(null, 'Comment updated', 200);
     }
-    
-    public function delete_delete($id) {
+
+    // [POST/DELETE] /api/comments/delete/(:num) - Hapus komentar
+    public function delete($id) {
         $existing = $this->Comment_model->get_by_id($id);
         if (!$existing) {
-            $this->response(['status' => 'error', 'message' => 'Comment not found'], 404);
+            $this->response_error('Comment not found', 404);
             return;
         }
-        
+
         $this->Comment_model->delete($id);
-        $this->response(['status' => 'success', 'message' => 'Comment deleted'], 200);
+        $this->response_success(null, 'Comment deleted', 200);
     }
 }

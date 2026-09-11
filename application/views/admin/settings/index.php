@@ -42,20 +42,10 @@
 <body>
     <div class="container-fluid">
         <div class="row">
-            <nav class="col-md-2 d-md-block bg-dark sidebar">
-                <div class="position-sticky pt-3">
-                    <h5 class="text-white text-center py-3">📝 CMS Admin</h5>
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/dashboard') ?>"><i class="fas fa-home"></i> Dashboard</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/posts') ?>"><i class="fas fa-file-alt"></i> Posts</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/categories') ?>"><i class="fas fa-tags"></i> Categories</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/tags') ?>"><i class="fas fa-tag"></i> Tags</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/media') ?>"><i class="fas fa-images"></i> Media</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('admin/users') ?>"><i class="fas fa-users"></i> Users</a></li>
-                        <li class="nav-item"><a class="nav-link text-white active" href="<?= base_url('admin/settings') ?>"><i class="fas fa-cog"></i> Settings</a></li>
-                    </ul>
-                </div>
-            </nav>
+<?php
+    $active_menu = 'settings'; // sesuaikan: 'posts', 'categories', 'tags', 'media', 'users', 'settings', 'seo', 'comments', 'logs'
+    $this->load->view('admin/partials/sidebar', ['active_menu' => $active_menu]);
+?>
 
             <main class="col-md-10 ms-sm-auto px-md-4">
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">

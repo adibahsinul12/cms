@@ -4,110 +4,120 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 require_once APPPATH . 'controllers/api/Base_api.php';
 
 class Media extends Base_api {
-    
+
     public function __construct() {
         parent::__construct();
         $this->load->model('Media_model');
+        $this->load->helper('url');
     }
-    
-    public function index_get() {
-        $this->response(['status' => 'success', 'data' => $this->Media_model->get_all()], 200);
+
+    // Ubah path relatif jadi URL absolut, supaya <img src="..."> tidak salah resolve
+    // relatif terhadap halaman saat ini (admin/media), tapi relatif terhadap root site.
+    private function add_file_url($item) {
+        if (isset($item['file_path'])) {
+            $item['file_url'] = base_url($item['file_path']);
+        }
+        return $item;
     }
-    
-    public function detail_get($id) {
+
+    // [GET] /api/media
+    public function index() {
+        $data = $this->Media_model->get_all();
+        $data = array_map([$this, 'add_file_url'], $data);
+        $this->response_success($data, 'OK', 200);
+    }
+
+    // [GET] /api/media/show/(:num) dan /api/media/(:num)
+    public function detail($id) {
         $media = $this->Media_model->get_by_id($id);
         if (!$media) {
-            $this->response(['status' => 'error', 'message' => 'Media not found'], 404);
+            $this->response_error('Media not found', 404);
             return;
         }
-        $this->response(['status' => 'success', 'data' => $media], 200);
+        $this->response_success($this->add_file_url($media), 'OK', 200);
     }
-    
-    public function upload_post() {
-        if (empty($_FILES['files']['name'][0])) {
-            $this->response(['status' => 'error', 'message' => 'No files uploaded'], 400);
+
+    // [POST] /api/media/upload - Upload satu file per request (field name: 'file')
+    public function upload() {
+        if (empty($_FILES['file']['name'])) {
+            $this->response_error('No file uploaded', 400);
             return;
         }
-        
+
         $upload_path = FCPATH . 'uploads/media/';
         if (!is_dir($upload_path)) {
             mkdir($upload_path, 0755, TRUE);
         }
-        
+
         $config['upload_path'] = $upload_path;
         $config['allowed_types'] = 'jpg|jpeg|png|gif|pdf|doc|docx|xls|xlsx|zip';
         $config['max_size'] = 10240;
+        $config['encrypt_name'] = TRUE;
         $this->load->library('upload', $config);
-        
-        $uploaded = [];
-        $files = $_FILES['files'];
-        $count = count($files['name']);
-        
-        for ($i = 0; $i < $count; $i++) {
-            $_FILES['file']['name'] = $files['name'][$i];
-            $_FILES['file']['type'] = $files['type'][$i];
-            $_FILES['file']['tmp_name'] = $files['tmp_name'][$i];
-            $_FILES['file']['error'] = $files['error'][$i];
-            $_FILES['file']['size'] = $files['size'][$i];
-            
-            if ($this->upload->do_upload('file')) {
-                $data = $this->upload->data();
-                
-                $sql = "CALL sp_upload_media(?, ?, ?, ?, ?, ?, ?)";
-                $query = $this->db->query($sql, [
-                    1, // uploaded_by sementara
-                    $data['file_name'],
-                    'uploads/media/' . $data['file_name'],
-                    $data['file_type'],
-                    $data['file_size'],
-                    null,
-                    null
-                ]);
-                
-                $result = $query->row_array();
-                $query->next_result();
-                $query->free_result();
-                
-                $uploaded[] = [
-                    'id' => $result['media_id'] ?? null,
-                    'file_name' => $data['file_name'],
-                    'file_path' => 'uploads/media/' . $data['file_name']
-                ];
-            }
-        }
-        
-        $this->response(['status' => 'success', 'message' => 'Files uploaded', 'data' => $uploaded], 201);
-    }
-    
-    public function update_put($id) {
-        $existing = $this->Media_model->get_by_id($id);
-        if (!$existing) {
-            $this->response(['status' => 'error', 'message' => 'Media not found'], 404);
+
+        if (!$this->upload->do_upload('file')) {
+            $this->response_error($this->upload->display_errors('', ''), 400);
             return;
         }
-        
+
+        $data = $this->upload->data();
+        $file_ext = ltrim($data['file_ext'], '.'); // simpan ekstensi saja (jpg, png, dst), bukan MIME type
+
+        $sql = "CALL sp_upload_media(?, ?, ?, ?, ?, ?, ?)";
+        $query = $this->db->query($sql, [
+            1, // uploaded_by sementara — TODO: ganti dengan user_id dari session
+            $data['file_name'],
+            'uploads/media/' . $data['file_name'],
+            $file_ext,
+            $data['file_size'],
+            null,
+            null
+        ]);
+
+        $result = $query->row_array();
+
+        $this->response_success([
+            'id'        => $result['media_id'] ?? null,
+            'file_name' => $data['file_name'],
+            'file_path' => 'uploads/media/' . $data['file_name'],
+            'file_url'  => base_url('uploads/media/' . $data['file_name'])
+        ], 'File uploaded', 201);
+    }
+
+    // [PUT] /api/media/update/(:num)
+    public function update($id) {
+        $existing = $this->Media_model->get_by_id($id);
+        if (!$existing) {
+            $this->response_error('Media not found', 404);
+            return;
+        }
+
+        $raw_input = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: [];
+
         $data = [
-            'alt_text' => $this->put('alt_text'),
-            'caption' => $this->put('caption')
+            'alt_text' => $input_data['alt_text'] ?? $existing['alt_text'],
+            'caption'  => $input_data['caption'] ?? $existing['caption']
         ];
-        
+
         $this->Media_model->update($id, $data);
-        $this->response(['status' => 'success', 'message' => 'Media updated'], 200);
+        $this->response_success(null, 'Media updated', 200);
     }
-    
-    public function delete_delete($id) {
+
+    // [DELETE] /api/media/delete/(:num)
+    public function delete($id) {
         $existing = $this->Media_model->get_by_id($id);
         if (!$existing) {
-            $this->response(['status' => 'error', 'message' => 'Media not found'], 404);
+            $this->response_error('Media not found', 404);
             return;
         }
-        
+
         $file_path = FCPATH . $existing['file_path'];
         if (file_exists($file_path)) {
             unlink($file_path);
         }
-        
+
         $this->Media_model->delete($id);
-        $this->response(['status' => 'success', 'message' => 'Media deleted'], 200);
+        $this->response_success(null, 'Media deleted', 200);
     }
 }
