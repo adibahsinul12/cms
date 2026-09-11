@@ -10,46 +10,24 @@ class Post_meta extends Base_api {
         $this->load->database();
     }
     
-    /**
-     * POST /api/post/meta
-     * Simpan meta (panggil sp_save_post_meta)
-     */
-    public function save_post() {
-        $input = json_decode(file_get_contents('php://input'), true);
-        
-        $post_id = $input['post_id'] ?? null;
-        $meta_key = $input['meta_key'] ?? null;
-        $meta_value = $input['meta_value'] ?? null;
+    public function index_post() {
+        $post_id = $this->post('post_id');
+        $meta_key = $this->post('meta_key');
+        $meta_value = $this->post('meta_value');
         
         if (!$post_id || !$meta_key) {
-            $this->response([
-                'status' => 'error',
-                'message' => 'post_id dan meta_key wajib diisi'
-            ], 400);
+            $this->response(['status' => 'error', 'message' => 'post_id dan meta_key wajib diisi'], 400);
             return;
         }
         
-        // Panggil stored procedure
         $sql = "CALL sp_save_post_meta(?, ?, ?)";
         $this->db->query($sql, [$post_id, $meta_key, $meta_value]);
         
-        $this->response([
-            'status' => 'success',
-            'message' => 'Meta saved successfully'
-        ], 200);
+        $this->response(['status' => 'success', 'message' => 'Meta saved'], 200);
     }
     
-    /**
-     * GET /api/post/meta/{post_id}
-     * Ambil semua meta berdasarkan post_id
-     */
-    public function get_get($post_id) {
+    public function detail_get($post_id) {
         $this->db->where('post_id', $post_id);
-        $query = $this->db->get('post_meta');
-        
-        $this->response([
-            'status' => 'success',
-            'data' => $query->result_array()
-        ], 200);
+        $this->response(['status' => 'success', 'data' => $this->db->get('post_meta')->result_array()], 200);
     }
 }

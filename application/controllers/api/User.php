@@ -4,112 +4,85 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 require_once APPPATH . 'controllers/api/Base_api.php';
 
 class User extends Base_api {
-
+    
     public function __construct() {
         parent::__construct();
         $this->load->model('User_model');
     }
-
-    // [GET] /api/user - Ambil semua user
-    public function index() {
-        $users = $this->User_model->get_all_users();
-        $this->response([
-            'status' => 'success',
-            'data'   => $users
-        ], 200);
+    
+    public function index_get() {
+        $this->response(['status' => 'success', 'data' => $this->User_model->get_all()], 200);
     }
-
-    // [GET] /api/user/detail/{id} - Detail user
-    public function detail($id = NULL) {
-        if (!$id) {
-            $this->response_error('ID User wajib diisi!', 400);
-            return;
-        }
-
-        $user = $this->User_model->get_user_by_id($id);
+    
+    public function roles_get() {
+        $this->response(['status' => 'success', 'data' => $this->User_model->get_roles()], 200);
+    }
+    
+    public function detail_get($id) {
+        $user = $this->User_model->get_by_id($id);
         if (!$user) {
-            $this->response_error('User tidak ditemukan!', 404);
+            $this->response(['status' => 'error', 'message' => 'User not found'], 404);
             return;
         }
-
-        $this->response([
-            'status' => 'success',
-            'data'   => $user
-        ], 200);
+        $this->response(['status' => 'success', 'data' => $user], 200);
     }
-
-    // [POST] /api/user/create - Tambah user baru
-    public function create() {
-        $raw_input = file_get_contents('php://input');
-        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
-
-        if (empty($input_data['username']) || empty($input_data['email']) || empty($input_data['password'])) {
-            $this->response_error('Username, Email, dan Password wajib diisi!', 400);
+    
+    public function create_post() {
+        $this->form_validation->set_rules('username', 'Username', 'required|is_unique[users.username]');
+        $this->form_validation->set_rules('email', 'Email', 'required|valid_email|is_unique[users.email]');
+        $this->form_validation->set_rules('password', 'Password', 'required|min_length[6]');
+        $this->form_validation->set_rules('full_name', 'Full Name', 'required');
+        $this->form_validation->set_rules('role_id', 'Role', 'required|numeric');
+        
+        if ($this->form_validation->run() == FALSE) {
+            $this->response(['status' => 'error', 'errors' => $this->form_validation->error_array()], 400);
             return;
         }
-
+        
         $data = [
-            'username'  => $input_data['username'],
-            'email'     => $input_data['email'],
-            'password'  => $input_data['password'],
-            'full_name' => isset($input_data['full_name']) ? $input_data['full_name'] : '',
-            'role_id'   => isset($input_data['role_id']) ? $input_data['role_id'] : 2 // Default role 2 (misal Editor)
+            'role_id' => $this->post('role_id'),
+            'username' => $this->post('username'),
+            'email' => $this->post('email'),
+            'password' => password_hash($this->post('password'), PASSWORD_BCRYPT),
+            'full_name' => $this->post('full_name'),
+            'status' => $this->post('status') ?: 'active'
         ];
-
-        $user_id = $this->User_model->create_user($data);
-        if ($user_id) {
-            $this->response_success(['user_id' => $user_id], 'User berhasil dibuat!', 201);
-        } else {
-            $this->response_error('Gagal membuat user!', 500);
-        }
+        
+        $id = $this->User_model->create($data);
+        $this->response(['status' => 'success', 'message' => 'User created', 'data' => ['id' => $id]], 201);
     }
-
-    // [PUT/POST] /api/user/update/{id} - Update user
-    public function update($id = NULL) {
-        if (!$id) {
-            $this->response_error('ID User wajib diisi!', 400);
+    
+    public function update_put($id) {
+        $existing = $this->User_model->get_by_id($id);
+        if (!$existing) {
+            $this->response(['status' => 'error', 'message' => 'User not found'], 404);
             return;
         }
-
-        $raw_input = file_get_contents('php://input');
-        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
-
-        $data = [];
-        if (isset($input_data['username']))  $data['username']  = $input_data['username'];
-        if (isset($input_data['email']))     $data['email']     = $input_data['email'];
-        if (isset($input_data['password']))  $data['password']  = $input_data['password'];
-        if (isset($input_data['full_name'])) $data['full_name'] = $input_data['full_name'];
-        if (isset($input_data['role_id']))   $data['role_id']   = $input_data['role_id'];
-
-        $result = $this->User_model->update_user($id, $data);
-        if ($result) {
-            $this->response_success(null, 'User berhasil diperbarui!', 200);
-        } else {
-            $this->response_error('Gagal memperbarui user!', 500);
+        
+        $data = [
+            'role_id' => $this->put('role_id'),
+            'username' => $this->put('username'),
+            'email' => $this->put('email'),
+            'full_name' => $this->put('full_name'),
+            'status' => $this->put('status') ?: 'active'
+        ];
+        
+        if ($this->put('password')) {
+            $data['password'] = password_hash($this->put('password'), PASSWORD_BCRYPT);
         }
+        
+        $this->User_model->update($id, $data);
+        $this->response(['status' => 'success', 'message' => 'User updated'], 200);
     }
-
-    // [DELETE] /api/user/delete/{id} - Hapus user
-    public function delete($id = NULL) {
-        if (!$id) {
-            $this->response_error('ID User wajib diisi!', 400);
+    
+    public function delete_delete($id) {
+        $existing = $this->User_model->get_by_id($id);
+        if (!$existing) {
+            $this->response(['status' => 'error', 'message' => 'User not found'], 404);
             return;
         }
-
-        $result = $this->User_model->delete_user($id);
-        if ($result) {
-            $this->response_success(null, 'User berhasil dihapus!', 200);
-        } else {
-            $this->response_error('Gagal menghapus user!', 500);
-        }
-    }
-
-    // [GET] /api/user/roles - Ambil daftar role
-    public function roles() {
-        $roles = $this->User_model->get_all_roles();
-        $this->response([
-            'status' => 'success',
-            'data'   => $roles
-        ], 200);
+        
+        $this->User_model->delete($id);
+        $this->response(['status' => 'success', 'message' => 'User deleted'], 200);
     }
 }
