@@ -27,6 +27,18 @@ $menu_items = [
 // === AMBIL TEMA AKTIF DARI DATABASE ===
 // Pakai get_instance() karena di dalam view/partial, $this bukan controller.
 $CI =& get_instance();
+$CI->load->helper('permissions');
+$CI->load->library('session');
+
+// Filter menu sesuai permission role yang sedang login.
+// Kalau role tidak terdaftar / belum login, tampilkan menu apa adanya (fallback aman).
+$current_role_id = $CI->session->userdata('role_id');
+if ($current_role_id) {
+    $menu_items = array_filter($menu_items, function ($key) use ($current_role_id) {
+        return role_can($current_role_id, $key);
+    }, ARRAY_FILTER_USE_KEY);
+}
+
 $CI->load->model('Option_model');
 $all_options  = $CI->Option_model->get_all();
 $active_theme = (is_array($all_options) && !empty($all_options['active_theme']))
@@ -69,6 +81,28 @@ $colors = $theme_colors[$active_theme] ?? $theme_colors['theme-1'];
         border-radius: 6px;
         font-weight: 600;
     }
+    .sidebar-themed .logout-section {
+        margin-top: 20px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .sidebar-themed .logout-link {
+        color: rgba(255, 255, 255, 0.85);
+        background: none;
+        border: none;
+        width: 100%;
+        text-align: left;
+        padding: 8px 16px;
+        font-size: 1rem;
+        cursor: pointer;
+        display: block;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+    .sidebar-themed .logout-link:hover {
+        color: #fff;
+        background: rgba(220, 53, 69, 0.35);
+    }
 </style>
 
 <nav class="col-md-2 d-md-block sidebar-themed sidebar">
@@ -84,5 +118,30 @@ $colors = $theme_colors[$active_theme] ?? $theme_colors['theme-1'];
                 </li>
             <?php endforeach; ?>
         </ul>
+
+        <div class="logout-section px-2">
+            <button type="button" class="logout-link" id="btn-sidebar-logout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
     </div>
 </nav>
+
+<script>
+    document.getElementById('btn-sidebar-logout').addEventListener('click', function () {
+        if (!confirm('Yakin mau logout?')) return;
+
+        fetch('<?= base_url("api/auth/logout") ?>', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(function () {
+            window.location.href = '<?= base_url("login") ?>';
+        })
+        .catch(function () {
+            // Tetap redirect ke login walau request gagal,
+            // supaya user tidak stuck di halaman admin.
+            window.location.href = '<?= base_url("login") ?>';
+        });
+    });
+</script>

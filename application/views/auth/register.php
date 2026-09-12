@@ -286,17 +286,6 @@
         .btn-submit.is-loading .btn-spinner { display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .alert {
-            padding: 11px 14px;
-            border-radius: 8px;
-            font-size: 13.5px;
-            margin-bottom: 18px;
-            display: none;
-        }
-        .alert.show { display: block; }
-        .alert-success { background: #E7F6EE; color: var(--success); }
-        .alert-danger { background: #FBEAE6; color: var(--danger); }
-
         .foot-link {
             margin-top: 20px;
             text-align: center;
@@ -340,8 +329,6 @@
             <div class="form-card">
                 <h2>Daftar Akun Baru</h2>
                 <p class="lead">Lengkapi data berikut untuk membuat akun pegawai.</p>
-
-                <div id="alert-msg" class="alert"></div>
 
                 <form id="form-register" novalidate>
                     <div class="field">
@@ -387,6 +374,7 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="<?= base_url('assets/js/notifications.js') ?>"></script>
     <script>
         $(document).ready(function() {
 
@@ -433,13 +421,6 @@
                 }
             });
 
-            function showAlert(type, message) {
-                $('#alert-msg')
-                    .removeClass('alert-success alert-danger')
-                    .addClass('alert show alert-' + type)
-                    .text(message);
-            }
-
             $('#form-register').on('submit', function(e) {
                 e.preventDefault();
 
@@ -459,14 +440,14 @@
                     }),
                     success: function(res) {
                         if (res.status === 'success') {
-                            showAlert('success', 'Registrasi berhasil! Mengalihkan ke halaman login...');
+                            notify('Registrasi berhasil! Mengalihkan ke halaman login...', 'success');
                             setTimeout(function() {
                                 window.location.href = '<?= base_url("login") ?>';
                             }, 1500);
                         } else {
                             $btn.prop('disabled', false).removeClass('is-loading');
                             $btn.find('.btn-label').text('Daftar');
-                            showAlert('danger', res.message || 'Gagal mendaftar');
+                            notify(res.message || 'Gagal mendaftar', 'danger');
                         }
                     },
                     error: function(xhr) {
@@ -476,7 +457,7 @@
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             err = xhr.responseJSON.message;
                         }
-                        showAlert('danger', err);
+                        notify(err, 'danger');
                     }
                 });
             });

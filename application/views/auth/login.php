@@ -241,17 +241,6 @@
         .btn-submit.is-loading .btn-spinner { display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .alert {
-            padding: 11px 14px;
-            border-radius: 8px;
-            font-size: 13.5px;
-            margin-bottom: 18px;
-            display: none;
-        }
-        .alert.show { display: block; }
-        .alert-success { background: #E7F6EE; color: var(--success); }
-        .alert-danger { background: #FBEAE6; color: var(--danger); }
-
         .foot-link {
             margin-top: 22px;
             text-align: center;
@@ -289,9 +278,7 @@
         <div class="panel-form">
             <div class="form-card">
                 <h2>Masuk CMS</h2>
-                <p class="lead">Gunakan akun yang sudah dibuat untuk melanjutkan.</p>
-
-                <div id="alert-msg" class="alert"></div>
+                <p class="lead">Gunakan akun pegawai untuk melanjutkan.</p>
 
                 <form id="form-login" novalidate>
                     <div class="field">
@@ -321,6 +308,7 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="<?= base_url('assets/js/notifications.js') ?>"></script>
     <script>
         $(document).ready(function() {
 
@@ -339,13 +327,6 @@
                 $(this).text(isHidden ? 'Sembunyikan' : 'Tampilkan');
             });
 
-            function showAlert(type, message) {
-                $('#alert-msg')
-                    .removeClass('alert-success alert-danger')
-                    .addClass('alert show alert-' + type)
-                    .text(message);
-            }
-
             $('#form-login').on('submit', function(e) {
                 e.preventDefault();
 
@@ -363,21 +344,33 @@
                     }),
                     success: function(res) {
                         if (res.status === 'success') {
-                            showAlert('success', 'Login berhasil! Mengalihkan...');
+                            notify('Login berhasil! Mengalihkan...', 'success');
+
+                            // Staff (Admin, Editor, Author) masuk ke dashboard admin.
+                            // Role User biasa diarahkan balik ke portal publik,
+                            // supaya tidak ketemu halaman "Forbidden".
+                            const staffRoles = [1, 3, 4];
+                            // FIX: role_id dari API berupa string (mis. "1"), bukan number.
+                            // .includes() pakai strict comparison, jadi harus di-parse dulu.
+                            const roleId = parseInt(res.data && res.data.role_id, 10);
+                            const redirectUrl = staffRoles.includes(roleId)
+                                ? '<?= base_url("admin/dashboard") ?>'
+                                : '<?= base_url("home") ?>';
+
                             setTimeout(function() {
-                                window.location.href = '<?= base_url("admin/dashboard") ?>';
+                                window.location.href = redirectUrl;
                             }, 1000);
                         } else {
                             $btn.prop('disabled', false).removeClass('is-loading');
                             $btn.find('.btn-label').text('Login');
-                            showAlert('danger', res.message || 'Gagal login');
+                            notify(res.message || 'Gagal login', 'danger');
                         }
                     },
                     error: function(xhr) {
                         $btn.prop('disabled', false).removeClass('is-loading');
                         $btn.find('.btn-label').text('Login');
                         let err = xhr.responseJSON ? xhr.responseJSON.message : 'Gagal login';
-                        showAlert('danger', err);
+                        notify(err, 'danger');
                     }
                 });
             });

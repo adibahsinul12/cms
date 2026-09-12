@@ -7,12 +7,11 @@ class Media extends Base_api {
 
     public function __construct() {
         parent::__construct();
+        $this->require_role([1, 3, 4]); // Admin, Editor, Author
         $this->load->model('Media_model');
         $this->load->helper('url');
     }
 
-    // Ubah path relatif jadi URL absolut, supaya <img src="..."> tidak salah resolve
-    // relatif terhadap halaman saat ini (admin/media), tapi relatif terhadap root site.
     private function add_file_url($item) {
         if (isset($item['file_path'])) {
             $item['file_url'] = base_url($item['file_path']);
@@ -37,7 +36,7 @@ class Media extends Base_api {
         $this->response_success($this->add_file_url($media), 'OK', 200);
     }
 
-    // [POST] /api/media/upload - Upload satu file per request (field name: 'file')
+    // [POST] /api/media/upload
     public function upload() {
         if (empty($_FILES['file']['name'])) {
             $this->response_error('No file uploaded', 400);
@@ -61,11 +60,11 @@ class Media extends Base_api {
         }
 
         $data = $this->upload->data();
-        $file_ext = ltrim($data['file_ext'], '.'); // simpan ekstensi saja (jpg, png, dst), bukan MIME type
+        $file_ext = ltrim($data['file_ext'], '.');
 
         $sql = "CALL sp_upload_media(?, ?, ?, ?, ?, ?, ?)";
         $query = $this->db->query($sql, [
-            1, // uploaded_by sementara — TODO: ganti dengan user_id dari session
+            $this->current_user['id'], // sekarang pakai id dari session, bukan hardcode 1
             $data['file_name'],
             'uploads/media/' . $data['file_name'],
             $file_ext,

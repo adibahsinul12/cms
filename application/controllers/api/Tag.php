@@ -7,6 +7,7 @@ class Tag extends Base_api {
 
     public function __construct() {
         parent::__construct();
+        $this->require_role([1, 3, 4]); // Admin, Editor, Author
         $this->load->model('Tag_model');
     }
 

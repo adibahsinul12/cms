@@ -7,6 +7,7 @@ class Category extends Base_api {
 
     public function __construct() {
         parent::__construct();
+        $this->require_role([1, 3, 4]); // Admin, Editor, Author
         $this->load->model('Category_model');
     }
 
@@ -40,7 +41,6 @@ class Category extends Base_api {
             return;
         }
 
-        // Cek duplikasi slug
         $existing_slug = $this->Category_model->get_by_slug($input_data['slug']);
         if ($existing_slug) {
             $this->response_error('Slug sudah digunakan!', 400);

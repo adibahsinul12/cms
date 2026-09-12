@@ -29,6 +29,26 @@
 
                 <div id="alert-message"></div>
 
+                <!-- Permintaan Upgrade Role (Pending) -->
+                <div class="card mb-3" id="pending-requests-card" style="display:none;">
+                    <div class="card-header bg-warning-subtle">
+                        <i class="fas fa-user-clock"></i> Permintaan Upgrade Role
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Nama</th>
+                                    <th>Username</th>
+                                    <th>Mengajukan Jadi</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pending-requests-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- Info Box -->
                 <div class="row mb-3">
                     <div class="col-md-3">
@@ -96,12 +116,14 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Role *</label>
+                            <!-- FIX: value disesuaikan dengan tabel `roles` di database
+                                 1=Admin, 2=User, 3=Editor, 4=Author -->
                             <select class="form-select" id="role_id" required>
                                 <option value="">Pilih Role</option>
                                 <option value="1">Admin</option>
-                                <option value="2">Editor</option>
-                                <option value="3">Author</option>
-                                <option value="4">Subscriber</option>
+                                <option value="3">Editor</option>
+                                <option value="4">Author</option>
+                                <option value="2">User</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -125,12 +147,46 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        
+
 let userModal = new bootstrap.Modal(document.getElementById('userModal'));
 const API_URL = '<?= base_url("api/user") ?>';
 
         $(document).ready(function() {
             loadUsers();
+            loadPendingRequests();
+
+            $(document).on('click', '.approve-request', function() {
+                const id = $(this).data('id');
+                if (!confirm('Setujui permintaan upgrade role user ini?')) return;
+                $.ajax({
+                    url: `${API_URL}/approve-request/${id}`,
+                    method: 'POST',
+                    success: function(res) {
+                        showAlert(res.message || 'Pengajuan disetujui!', 'success');
+                        loadPendingRequests();
+                        loadUsers();
+                    },
+                    error: function(xhr) {
+                        showAlert(xhr.responseJSON?.message || 'Gagal menyetujui pengajuan', 'danger');
+                    }
+                });
+            });
+
+            $(document).on('click', '.reject-request', function() {
+                const id = $(this).data('id');
+                if (!confirm('Tolak permintaan upgrade role user ini?')) return;
+                $.ajax({
+                    url: `${API_URL}/reject-request/${id}`,
+                    method: 'POST',
+                    success: function(res) {
+                        showAlert(res.message || 'Pengajuan ditolak.', 'success');
+                        loadPendingRequests();
+                    },
+                    error: function(xhr) {
+                        showAlert(xhr.responseJSON?.message || 'Gagal menolak pengajuan', 'danger');
+                    }
+                });
+            });
 
             $('#save-user').on('click', function() {
                 const id = $('#user-id').val();
@@ -153,8 +209,8 @@ const API_URL = '<?= base_url("api/user") ?>';
                     return;
                 }
 
-                const url = id ? `${API_URL}/${id}` : API_URL;
-                const method = id ? 'PUT' : 'POST';
+                const url = id ? `${API_URL}/update/${id}` : `${API_URL}/create`;
+                const method = 'POST'; // controller tidak membedakan verb, samakan dengan pola Settings
 
                 $.ajax({
                     url: url,
@@ -163,7 +219,7 @@ const API_URL = '<?= base_url("api/user") ?>';
                     data: JSON.stringify(data),
                     success: function() {
                         showAlert(id ? 'User berhasil diupdate!' : 'User berhasil ditambahkan!', 'success');
-                        modal.hide();
+                        userModal.hide();
                         loadUsers();
                         resetForm();
                     },
@@ -177,7 +233,7 @@ const API_URL = '<?= base_url("api/user") ?>';
             $(document).on('click', '.edit-user', function() {
                 const id = $(this).data('id');
                 $.ajax({
-                    url: `${API_URL}/${id}`,
+                    url: `${API_URL}/detail/${id}`,
                     method: 'GET',
                     success: function(res) {
                         const u = res.data;
@@ -190,7 +246,7 @@ const API_URL = '<?= base_url("api/user") ?>';
                         $('#password').val('');
                         $('#password-hint').show();
                         $('#modalTitle').text('Edit User');
-                        modal.show();
+                        userModal.show();
                     }
                 });
             });
@@ -199,7 +255,7 @@ const API_URL = '<?= base_url("api/user") ?>';
                 const id = $(this).data('id');
                 if (confirm('Yakin hapus user ini?')) {
                     $.ajax({
-                        url: `${API_URL}/${id}`,
+                        url: `${API_URL}/delete/${id}`,
                         method: 'DELETE',
                         success: function() {
                             showAlert('User berhasil dihapus!', 'success');
@@ -217,6 +273,35 @@ const API_URL = '<?= base_url("api/user") ?>';
             });
         });
 
+        function loadPendingRequests() {
+            $.ajax({
+                url: `${API_URL}/pending-requests`,
+                method: 'GET',
+                success: function(res) {
+                    const roleNames = { 3: 'Editor', 4: 'Author' };
+                    if (res.data && res.data.length > 0) {
+                        let rows = '';
+                        res.data.forEach(function(u) {
+                            const roleName = roleNames[u.requested_role_id] || 'Tidak diketahui';
+                            rows += `<tr>
+                                <td>${u.full_name}</td>
+                                <td>${u.username}</td>
+                                <td><span class="badge bg-warning text-dark">${roleName}</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-success approve-request" data-id="${u.id}"><i class="fas fa-check"></i> Approve</button>
+                                    <button class="btn btn-sm btn-outline-danger reject-request" data-id="${u.id}"><i class="fas fa-times"></i> Reject</button>
+                                </td>
+                            </tr>`;
+                        });
+                        $('#pending-requests-body').html(rows);
+                        $('#pending-requests-card').show();
+                    } else {
+                        $('#pending-requests-card').hide();
+                    }
+                }
+            });
+        }
+
         function loadUsers() {
             $.ajax({
                 url: API_URL,
@@ -226,11 +311,13 @@ const API_URL = '<?= base_url("api/user") ?>';
                     if (res.data && res.data.length > 0) {
                         $('#total-users').text(res.data.length);
                         res.data.forEach(function(u) {
+                            // FIX: mapping badge role disesuaikan dengan tabel `roles` di database
+                            // 1=Admin, 2=User, 3=Editor, 4=Author
                             const roleBadge = {
                                 1: '<span class="badge bg-danger">Admin</span>',
-                                2: '<span class="badge bg-warning text-dark">Editor</span>',
-                                3: '<span class="badge bg-info text-dark">Author</span>',
-                                4: '<span class="badge bg-secondary">Subscriber</span>'
+                                3: '<span class="badge bg-warning text-dark">Editor</span>',
+                                4: '<span class="badge bg-info text-dark">Author</span>',
+                                2: '<span class="badge bg-secondary">User</span>'
                             }[u.role_id] || '<span class="badge bg-secondary">Unknown</span>';
 
                             const statusBadge = {

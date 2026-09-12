@@ -1,3 +1,13 @@
+<?php
+// Ambil status login dari session (gaya sama seperti di sidebar.php)
+$CI =& get_instance();
+$CI->load->library('session');
+$is_logged_in = (bool) $CI->session->userdata('logged_in');
+$current_role = $CI->session->userdata('role_id');
+$current_name = $CI->session->userdata('full_name');
+$current_user_id = $CI->session->userdata('user_id');
+$staff_roles = [1, 3, 4];
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -91,6 +101,136 @@
         .btn-login:hover {
             background: rgba(255,255,255,0.1);
             border-color: rgba(255,255,255,0.6);
+        }
+
+        /* Nav auth area (logged in state) */
+        .nav-auth {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-user-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--white);
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 13.5px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .nav-user-btn:hover { background: rgba(255,255,255,0.15); }
+
+        .nav-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 12px 30px rgba(15,42,71,0.25);
+            min-width: 240px;
+            padding: 8px;
+            display: none;
+            z-index: 50;
+        }
+        .nav-dropdown.show { display: block; }
+        .nav-dropdown .dd-header {
+            padding: 8px 10px;
+            font-size: 12.5px;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 6px;
+        }
+        .nav-dropdown button, .nav-dropdown a {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            padding: 9px 10px;
+            font-family: inherit;
+            font-size: 13.5px;
+            color: var(--ink);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .nav-dropdown button:hover, .nav-dropdown a:hover {
+            background: var(--bg);
+        }
+        .nav-dropdown .btn-logout-item { color: #C4432A; }
+        .nav-dropdown .pending-note {
+            font-size: 12.5px;
+            color: var(--gold-500);
+            padding: 8px 10px;
+            background: #FFF7E8;
+            border-radius: 6px;
+            margin: 4px 0;
+        }
+
+        /* Request role modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,42,71,0.55);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 28px;
+            width: 100%;
+            max-width: 380px;
+        }
+        .modal-box h3 { font-size: 20px; margin-bottom: 8px; }
+        .modal-box p { color: var(--muted); font-size: 13.5px; margin-bottom: 20px; }
+        .role-choice {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .role-choice label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .role-choice label:hover { border-color: var(--blue-500); }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+        .btn-plain {
+            padding: 9px 16px;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--white);
+            color: var(--ink);
+        }
+        .btn-primary-solid {
+            padding: 9px 16px;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            background: var(--blue-500);
+            color: var(--white);
         }
 
         /* Hero */
@@ -288,9 +428,69 @@
             <a class="brand" href="#">
                 <span class="mark">🌐</span> Portal Diskominfo
             </a>
-            <a href="<?= base_url('login') ?>" class="btn-login">Login</a>
+
+            <?php if (!$is_logged_in): ?>
+                <!-- BELUM LOGIN -->
+                <a href="<?= base_url('login') ?>" class="btn-login">Login</a>
+
+            <?php elseif (in_array($current_role, $staff_roles, true)): ?>
+                <!-- SUDAH LOGIN SEBAGAI STAFF (Admin/Editor/Author) -->
+                <div class="nav-auth">
+                    <a href="<?= base_url('admin/dashboard') ?>" class="btn-login">
+                        <i class="fas fa-th-large"></i> Dashboard Admin
+                    </a>
+                    <button type="button" class="nav-user-btn" id="btn-nav-user">
+                        <?= htmlspecialchars($current_name ?: 'Akun') ?> ▾
+                    </button>
+                    <div class="nav-dropdown" id="nav-dropdown">
+                        <div class="dd-header">Masuk sebagai <?= htmlspecialchars($current_name ?: '') ?></div>
+                        <button type="button" class="btn-logout-item" id="btn-nav-logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+
+            <?php else: ?>
+                <!-- SUDAH LOGIN SEBAGAI USER BIASA (role_id 2) -->
+                <div class="nav-auth">
+                    <button type="button" class="nav-user-btn" id="btn-nav-user">
+                        <?= htmlspecialchars($current_name ?: 'Akun') ?> ▾
+                    </button>
+                    <div class="nav-dropdown" id="nav-dropdown">
+                        <div class="dd-header">Masuk sebagai <?= htmlspecialchars($current_name ?: '') ?></div>
+                        <div id="request-status-area">
+                            <!-- diisi oleh JS: tombol "Ajukan jadi Staff" atau pesan "Menunggu persetujuan" -->
+                        </div>
+                        <button type="button" class="btn-logout-item" id="btn-nav-logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </nav>
+
+    <!-- MODAL: Ajukan jadi Staff -->
+    <div class="modal-overlay" id="request-role-modal">
+        <div class="modal-box">
+            <h3>Ajukan jadi Staff</h3>
+            <p>Pilih posisi yang ingin kamu ajukan. Admin akan meninjau permintaan ini.</p>
+            <div class="role-choice">
+                <label>
+                    <input type="radio" name="requested_role" value="3" checked>
+                    <span><strong>Editor</strong> — kelola konten & moderasi komentar</span>
+                </label>
+                <label>
+                    <input type="radio" name="requested_role" value="4">
+                    <span><strong>Author</strong> — menulis & mengelola post sendiri</span>
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-plain" id="btn-cancel-request">Batal</button>
+                <button type="button" class="btn-primary-solid" id="btn-submit-request">Kirim Pengajuan</button>
+            </div>
+        </div>
+    </div>
 
     <header class="hero">
         <div class="wrap">
@@ -325,6 +525,11 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+        const IS_LOGGED_IN = <?= $is_logged_in ? 'true' : 'false' ?>;
+        const CURRENT_ROLE = <?= json_encode($current_role) ?>;
+        const CURRENT_USER_ID = <?= json_encode($current_user_id) ?>;
+        const USER_API = '<?= base_url("api/user") ?>';
+
         let allPosts = [];
 
         function formatDate(dateStr) {
@@ -406,6 +611,75 @@
 
             $(window).on('scroll', function() {
                 $('#navbar').toggleClass('is-scrolled', $(window).scrollTop() > 10);
+            });
+
+            // ===== Dropdown akun =====
+            $('#btn-nav-user').on('click', function(e) {
+                e.stopPropagation();
+                $('#nav-dropdown').toggleClass('show');
+            });
+            $(document).on('click', function() {
+                $('#nav-dropdown').removeClass('show');
+            });
+            $('#nav-dropdown').on('click', function(e) { e.stopPropagation(); });
+
+            // ===== Logout =====
+            $('#btn-nav-logout').on('click', function() {
+                if (!confirm('Yakin mau logout?')) return;
+                fetch('<?= base_url("api/auth/logout") ?>', { method: 'POST' })
+                    .then(function() { window.location.href = '<?= base_url("home") ?>'; })
+                    .catch(function() { window.location.href = '<?= base_url("home") ?>'; });
+            });
+
+            // ===== Ajukan jadi Staff (khusus role User biasa) =====
+            if (IS_LOGGED_IN && CURRENT_ROLE == 2) {
+                checkRequestStatus();
+            }
+
+            function checkRequestStatus() {
+                $.ajax({
+                    url: `${USER_API}/detail/${CURRENT_USER_ID}`,
+                    method: 'GET',
+                    success: function(res) {
+                        const u = res.data;
+                        if (u.request_status === 'pending') {
+                            $('#request-status-area').html(
+                                '<div class="pending-note"><i class="fas fa-clock"></i> Pengajuan sedang menunggu persetujuan Admin.</div>'
+                            );
+                        } else {
+                            $('#request-status-area').html(
+                                '<button type="button" id="btn-open-request">Ajukan jadi Staff</button>'
+                            );
+                        }
+                    }
+                });
+            }
+
+            $(document).on('click', '#btn-open-request', function() {
+                $('#nav-dropdown').removeClass('show');
+                $('#request-role-modal').addClass('show');
+            });
+
+            $('#btn-cancel-request').on('click', function() {
+                $('#request-role-modal').removeClass('show');
+            });
+
+            $('#btn-submit-request').on('click', function() {
+                const roleId = $('input[name="requested_role"]:checked').val();
+                $.ajax({
+                    url: `${USER_API}/request-role`,
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ requested_role_id: parseInt(roleId, 10) }),
+                    success: function(res) {
+                        alert(res.message || 'Pengajuan berhasil dikirim!');
+                        $('#request-role-modal').removeClass('show');
+                        checkRequestStatus();
+                    },
+                    error: function(xhr) {
+                        alert(xhr.responseJSON?.message || 'Gagal mengirim pengajuan');
+                    }
+                });
             });
         });
     </script>
