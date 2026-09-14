@@ -46,6 +46,8 @@ class Comment extends Base_api {
         ]);
 
         $result = $query->row_array();
+        $query->next_result();
+        $query->free_result();
 
         $this->response_success(['comment_id' => $result['comment_id']], 'Komentar dikirim, menunggu moderasi', 201);
     }

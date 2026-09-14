@@ -74,6 +74,8 @@ class Media extends Base_api {
         ]);
 
         $result = $query->row_array();
+        $query->next_result();
+        $query->free_result();
 
         $this->response_success([
             'id'        => $result['media_id'] ?? null,

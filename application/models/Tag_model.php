@@ -16,6 +16,11 @@ class Tag_model extends CI_Model {
         $this->db->where('id', $id);
         return $this->db->get('tags')->row_array();
     }
+
+    public function get_by_slug($slug) {
+        $this->db->where('slug', $slug);
+        return $this->db->get('tags')->row_array();
+    }
     
     public function create($data) {
         $this->db->insert('tags', $data);

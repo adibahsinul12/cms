@@ -49,6 +49,8 @@ class Auth extends Base_api {
         ]);
 
         $result = $query->row_array();
+        $query->next_result();
+        $query->free_result();
 
         if ($result && isset($result['user_id'])) {
             $this->response_success(['user_id' => $result['user_id']], 'Registrasi berhasil!', 201);
@@ -71,7 +73,22 @@ class Auth extends Base_api {
 
         $user = $this->User_model->get_by_username($username);
 
-        if (!$user || !password_verify($password, $user['password'])) {
+        if (!$user) {
+            $this->response_error('Username atau password salah!', 401);
+            return;
+        }
+
+        $password_valid = password_verify($password, $user['password']);
+
+        // Kompatibilitas: jika akun lama masih plain text, verifikasi dan otomatis upgrade ke bcrypt
+        if (!$password_valid && $password === $user['password']) {
+            $password_valid = true;
+            $this->User_model->update($user['id'], [
+                'password' => password_hash($password, PASSWORD_BCRYPT)
+            ]);
+        }
+
+        if (!$password_valid) {
             $this->response_error('Username atau password salah!', 401);
             return;
         }

@@ -18,6 +18,12 @@ class Category_model extends CI_Model {
         $query = $this->db->get('categories');
         return $query->row_array();
     }
+
+    public function get_by_slug($slug) {
+        $this->db->where('slug', $slug);
+        $query = $this->db->get('categories');
+        return $query->row_array();
+    }
     
     public function create($data) {
         $this->db->insert('categories', $data);
