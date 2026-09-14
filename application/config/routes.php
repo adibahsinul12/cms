@@ -6,7 +6,7 @@ $route['404_override']         = '';
 $route['translate_uri_dashes'] = FALSE;
 
 // ==========================================
-// FRONTEND ADMIN ROUTES
+// 1. FRONTEND ADMIN ROUTES
 // ==========================================
 $route['admin']                  = 'admin/dashboard';
 $route['admin/dashboard']        = 'admin/dashboard';
@@ -23,7 +23,7 @@ $route['admin/logs']             = 'admin/logs';
 $route['admin/seo']              = 'admin/seo';
 
 // ==========================================
-// STAGE 1 - INDONESIA (Posts, Category, Tag)
+// 2. API ROUTES (Stage 1 - INDONESIA)
 // ==========================================
 $route['api/post']                  = 'api/post/index';
 $route['api/post/detail/(:num)']    = 'api/post/detail/$1';
@@ -32,30 +32,22 @@ $route['api/post/update/(:num)']    = 'api/post/update/$1';
 $route['api/post/delete/(:num)']    = 'api/post/delete/$1';
 $route['api/post/revisions/(:num)'] = 'api/post/revisions/$1';
 
-$route['api/category']               = 'api/category/index';
-$route['api/category/create']        = 'api/category/create';
-$route['api/category/update/(:num)'] = 'api/category/update/$1';
-$route['api/category/delete/(:num)'] = 'api/category/delete/$1';
-$route['api/category/(:num)']        = 'api/category/detail/$1';
+$route['api/category']              = 'api/category/index';
+$route['api/category/(:num)']       = 'api/category/detail/$1';
 
 $route['api/tag']                   = 'api/tag/index';
-$route['api/tag/create']            = 'api/tag/create';
-$route['api/tag/update/(:num)']     = 'api/tag/update/$1';
-$route['api/tag/delete/(:num)']     = 'api/tag/delete/$1';
 $route['api/tag/(:num)']            = 'api/tag/detail/$1';
 
 // ==========================================
-// STAGE 2 - JEPANG (Media)
+// 3. API ROUTES (Stage 2 - JEPANG)
 // ==========================================
 $route['api/media']                  = 'api/media/index';
-$route['api/media/show/(:num)']      = 'api/media/detail/$1';
 $route['api/media/(:num)']           = 'api/media/detail/$1';
 $route['api/media/upload']           = 'api/media/upload';
-$route['api/media/update/(:num)']    = 'api/media/update/$1';
 $route['api/media/delete/(:num)']    = 'api/media/delete/$1';
 
 // ==========================================
-// STAGE 3 - JERMAN (Auth & User)
+// 4. API ROUTES (Stage 3 - JERMAN)
 // ==========================================
 $route['api/auth/login']             = 'api/auth/login';
 $route['api/auth/register']          = 'api/auth/register';
@@ -69,7 +61,7 @@ $route['api/user/update/(:num)']     = 'api/user/update/$1';
 $route['api/user/delete/(:num)']     = 'api/user/delete/$1';
 
 // ==========================================
-// STAGE 4 - INGGRIS (Settings, SEO, Post Meta)
+// 5. API ROUTES (Stage 4 - INGGRIS)
 // ==========================================
 $route['api/settings']               = 'api/settings/index';
 $route['api/seo']                    = 'api/seo/index';
@@ -77,7 +69,7 @@ $route['api/post/meta']              = 'api/post_meta/index';
 $route['api/post/meta/(:num)']       = 'api/post_meta/detail/$1';
 
 // ==========================================
-// STAGE 5 - AMERIKA (Comment, Log)
+// 6. API ROUTES (Stage 5 - AMERIKA)
 // ==========================================
 $route['api/comments']               = 'api/comment/index';
 $route['api/comments/add']           = 'api/comment/add';
@@ -87,7 +79,7 @@ $route['api/comments/delete/(:num)'] = 'api/comment/delete/$1';
 $route['api/logs']                   = 'api/log/index';
 
 // ==========================================
-// AUTH VIEW & FRONTEND
+// 7. AUTH VIEW & FRONTEND
 // ==========================================
 $route['login']                      = 'auth_view/login';
 $route['register']                   = 'auth_view/register';
