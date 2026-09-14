@@ -8,7 +8,14 @@ class User extends Base_api {
     public function __construct() {
         parent::__construct();
         $this->load->model('User_model');
-        $this->load->library('session');
+        // Manajemen user (list/create/update/delete/approval) HANYA untuk Admin.
+        // request_role() dikecualikan secara manual di dalam method-nya sendiri,
+        // karena itu dipanggil oleh User biasa (role 2), bukan Admin.
+        if ($this->router->fetch_method() !== 'request_role') {
+            $this->require_role([1]);
+        } else {
+            $this->require_login();
+        }
     }
 
     // [GET] /api/user
@@ -117,22 +124,23 @@ class User extends Base_api {
     // Dipanggil oleh user yang SEDANG LOGIN (role User biasa) untuk mengajukan
     // jadi Editor atau Author. role_id diambil dari SESSION, bukan dari input,
     // supaya tidak bisa dimanipulasi orang lain.
+    // NIP WAJIB diisi, supaya Admin punya dasar verifikasi sebelum approve.
     public function request_role() {
-        if (!$this->session->userdata('logged_in')) {
-            $this->response_error('Anda harus login terlebih dahulu!', 401);
-            return;
-        }
-
+        // require_login() sudah dipanggil di constructor untuk method ini.
         $user_id = $this->session->userdata('user_id');
         $raw_input = file_get_contents('php://input');
         $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
 
         $requested_role_id = (int) ($input_data['requested_role_id'] ?? 0);
+        $nip = trim($input_data['nip'] ?? '');
 
-        // Hanya boleh mengajukan jadi Editor (3) atau Author (4).
-        // Tidak boleh mengajukan jadi Admin (1) lewat jalur ini.
         if (!in_array($requested_role_id, [3, 4], true)) {
             $this->response_error('Role yang diajukan tidak valid!', 400);
+            return;
+        }
+
+        if ($nip === '' || strlen($nip) < 6) {
+            $this->response_error('NIP wajib diisi (minimal 6 karakter)!', 400);
             return;
         }
 
@@ -154,6 +162,7 @@ class User extends Base_api {
 
         $this->db->where('id', $user_id)->update('users', [
             'requested_role_id' => $requested_role_id,
+            'nip'               => $nip,
             'request_status'    => 'pending'
         ]);
 
@@ -161,12 +170,10 @@ class User extends Base_api {
     }
 
     // [GET] /api/user/pending-requests
-    // Daftar user yang sedang mengajukan upgrade role (untuk Admin)
     public function pending_requests() {
         $this->db->where('request_status', 'pending');
         $pending = $this->db->get('users')->result_array();
 
-        // Buang password dari hasil, tidak perlu dikirim ke frontend
         foreach ($pending as &$row) {
             unset($row['password']);
         }
@@ -175,7 +182,6 @@ class User extends Base_api {
     }
 
     // [POST] /api/user/approve-request/(:num)
-    // $id = id user yang pengajuannya di-ACC
     public function approve_request($id) {
         $user = $this->User_model->get_by_id($id);
         if (!$user) {
@@ -210,6 +216,7 @@ class User extends Base_api {
 
         $this->db->where('id', $id)->update('users', [
             'requested_role_id' => null,
+            'nip'               => null,
             'request_status'    => 'none'
         ]);
 

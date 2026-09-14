@@ -8,6 +8,8 @@ class Settings extends Base_api {
     public function __construct() {
         parent::__construct();
         $this->load->model('Option_model');
+        // Ubah pengaturan situs (nama, tema, dll) HANYA boleh Admin.
+        $this->require_role([1]);
     }
 
     // [GET] Ambil semua settings, [POST] Simpan settings — satu URL dua fungsi

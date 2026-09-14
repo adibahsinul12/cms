@@ -41,6 +41,8 @@
                                     <th>Nama</th>
                                     <th>Username</th>
                                     <th>Mengajukan Jadi</th>
+                                    <th>NIP</th>
+                                    <th>NIP / Info</th>
                                     <th>Aksi</th>
                                 </tr>
                             </thead>
@@ -159,7 +161,7 @@ const API_URL = '<?= base_url("api/user") ?>';
                 const id = $(this).data('id');
                 if (!confirm('Setujui permintaan upgrade role user ini?')) return;
                 $.ajax({
-                    url: `${API_URL}/approve-request/${id}`,
+                    url: `${API_URL}/approve_request/${id}`,
                     method: 'POST',
                     success: function(res) {
                         showAlert(res.message || 'Pengajuan disetujui!', 'success');
@@ -176,7 +178,7 @@ const API_URL = '<?= base_url("api/user") ?>';
                 const id = $(this).data('id');
                 if (!confirm('Tolak permintaan upgrade role user ini?')) return;
                 $.ajax({
-                    url: `${API_URL}/reject-request/${id}`,
+                    url: `${API_URL}/reject_request/${id}`,
                     method: 'POST',
                     success: function(res) {
                         showAlert(res.message || 'Pengajuan ditolak.', 'success');
@@ -275,7 +277,7 @@ const API_URL = '<?= base_url("api/user") ?>';
 
         function loadPendingRequests() {
             $.ajax({
-                url: `${API_URL}/pending-requests`,
+                url: `${API_URL}/pending_requests`,
                 method: 'GET',
                 success: function(res) {
                     const roleNames = { 3: 'Editor', 4: 'Author' };
@@ -287,6 +289,7 @@ const API_URL = '<?= base_url("api/user") ?>';
                                 <td>${u.full_name}</td>
                                 <td>${u.username}</td>
                                 <td><span class="badge bg-warning text-dark">${roleName}</span></td>
+                                <td>${u.nip || '-'}</td>
                                 <td>
                                     <button class="btn btn-sm btn-success approve-request" data-id="${u.id}"><i class="fas fa-check"></i> Approve</button>
                                     <button class="btn btn-sm btn-outline-danger reject-request" data-id="${u.id}"><i class="fas fa-times"></i> Reject</button>

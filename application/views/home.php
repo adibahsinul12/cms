@@ -485,6 +485,14 @@ $staff_roles = [1, 3, 4];
                     <span><strong>Author</strong> — menulis & mengelola post sendiri</span>
                 </label>
             </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display:block; font-size:13px; font-weight:600; color:var(--navy-900); margin-bottom:6px;">
+                    NIP (Nomor Induk Pegawai) *
+                </label>
+                <input type="text" id="nip-input" placeholder="Contoh: 198501012010011001"
+                    style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:7px; font-family:inherit; font-size:14px;">
+                <small style="color:var(--muted); font-size:12px;">Wajib diisi, dipakai Admin untuk memverifikasi pengajuan kamu.</small>
+            </div>
             <div class="modal-actions">
                 <button type="button" class="btn-plain" id="btn-cancel-request">Batal</button>
                 <button type="button" class="btn-primary-solid" id="btn-submit-request">Kirim Pengajuan</button>
@@ -618,10 +626,16 @@ $staff_roles = [1, 3, 4];
                 e.stopPropagation();
                 $('#nav-dropdown').toggleClass('show');
             });
-            $(document).on('click', function() {
-                $('#nav-dropdown').removeClass('show');
+            // FIX: sebelumnya pakai e.stopPropagation() di #nav-dropdown, ini
+            // menghalangi event klik "bubbling" sampai ke document, padahal
+            // tombol #btn-open-request (Ajukan jadi Staff) di-listen lewat
+            // delegated event di document — jadi klik tombolnya gak pernah kedeteksi.
+            // Sekarang cek posisi klik-nya aja: kalau di luar dropdown & tombol user, baru tutup.
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#nav-dropdown, #btn-nav-user').length) {
+                    $('#nav-dropdown').removeClass('show');
+                }
             });
-            $('#nav-dropdown').on('click', function(e) { e.stopPropagation(); });
 
             // ===== Logout =====
             $('#btn-nav-logout').on('click', function() {
@@ -666,14 +680,25 @@ $staff_roles = [1, 3, 4];
 
             $('#btn-submit-request').on('click', function() {
                 const roleId = $('input[name="requested_role"]:checked').val();
+                const nip = $('#nip-input').val().trim();
+
+                if (!nip || nip.length < 6) {
+                    alert('NIP wajib diisi (minimal 6 karakter)!');
+                    return;
+                }
+
                 $.ajax({
-                    url: `${USER_API}/request-role`,
+                    url: `${USER_API}/request_role`,
                     method: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify({ requested_role_id: parseInt(roleId, 10) }),
+                    data: JSON.stringify({
+                        requested_role_id: parseInt(roleId, 10),
+                        nip: nip
+                    }),
                     success: function(res) {
                         alert(res.message || 'Pengajuan berhasil dikirim!');
                         $('#request-role-modal').removeClass('show');
+                        $('#nip-input').val('');
                         checkRequestStatus();
                     },
                     error: function(xhr) {
