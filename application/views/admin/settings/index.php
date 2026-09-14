@@ -10,33 +10,51 @@
         .sidebar { min-height: 100vh; }
         .theme-card {
             border: 2px solid #dee2e6;
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
+            border-radius: 12px;
+            padding: 18px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.25s ease;
+            position: relative;
+            background: #fff;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
         .theme-card:hover {
             border-color: #0d6efd;
-            transform: translateY(-3px);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(13, 110, 253, 0.12);
         }
         .theme-card.active {
             border-color: #0d6efd;
             background: #f0f7ff;
-            box-shadow: 0 0 15px rgba(13, 110, 253, 0.3);
+            box-shadow: 0 0 0 2px #0d6efd;
         }
-        .theme-preview {
-            width: 100%;
+        .theme-badge-active {
+            display: none;
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: #0d6efd;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 50px;
+        }
+        .theme-card.active .theme-badge-active { display: inline-block; }
+        .theme-icon-box {
             height: 100px;
-            border-radius: 8px;
-            margin-bottom: 10px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 38px;
+            margin-bottom: 14px;
         }
-        .theme-1 { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .theme-2 { background: linear-gradient(135deg, #11998e, #38ef7d); }
-        .theme-3 { background: linear-gradient(135deg, #f12711, #f5af19); }
-        .theme-4 { background: linear-gradient(135deg, #232526, #414345); }
-        .theme-5 { background: linear-gradient(135deg, #2193b0, #6dd5ed); }
-        .theme-6 { background: linear-gradient(135deg, #ee9ca7, #ffdde1); }
+        .theme-dinas { background: linear-gradient(135deg, #0F2A47, #1B4570); color: #E7A33E; }
+        .theme-katalog { background: linear-gradient(135deg, #064E3B, #10B981); color: #fff; }
+        .theme-company { background: linear-gradient(135deg, #1E3A8A, #3B82F6); color: #fff; }
     </style>
 </head>
 <body>
@@ -103,56 +121,60 @@
                             </div>
                         </div>
 
-                        <!-- TAB TEMA -->
+                        <!-- TAB TEMA / TEMPLATE -->
                         <div class="tab-pane fade" id="theme">
                             <div class="card">
                                 <div class="card-body">
-                                    <h5 class="mb-3">Pilih Tema</h5>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <h5 class="mb-1">🎨 Katalog Template Website</h5>
+                                            <p class="text-muted small mb-0">Pilih template website yang ingin kamu gunakan. Tata letak akan otomatis berganti secara instan (seperti tema WordPress).</p>
+                                        </div>
+                                    </div>
                                     <div class="row">
+                                        <!-- TEMPLATE 1: DINAS -->
                                         <div class="col-md-4 mb-3">
-                                            <div class="theme-card" data-theme="theme-1">
-                                                <div class="theme-preview theme-1"></div>
-                                                <h6>Purple</h6>
-                                                <small class="text-muted">Elegan & Modern</small>
+                                            <div class="theme-card" data-theme="dinas">
+                                                <span class="theme-badge-active"><i class="fas fa-check-circle"></i> Sedang Aktif</span>
+                                                <div class="theme-icon-box theme-dinas">
+                                                    <i class="fas fa-landmark"></i>
+                                                </div>
+                                                <span class="badge bg-secondary mb-2" style="width: fit-content;">Pemerintahan & Berita</span>
+                                                <h5 class="fw-bold mb-1">Portal Dinas / Berita</h5>
+                                                <p class="text-muted small mb-3 flex-grow-1">Format formal untuk portal instansi pemerintah daerah, kantor kecamatan/desa, dan media publikasi berita resmi.</p>
+                                                <button type="button" class="btn btn-sm btn-outline-primary w-100 select-theme-btn">Pilih Template</button>
                                             </div>
                                         </div>
+
+                                        <!-- TEMPLATE 2: KATALOG -->
                                         <div class="col-md-4 mb-3">
-                                            <div class="theme-card" data-theme="theme-2">
-                                                <div class="theme-preview theme-2"></div>
-                                                <h6>Green</h6>
-                                                <small class="text-muted">Segar & Natural</small>
+                                            <div class="theme-card" data-theme="katalog">
+                                                <span class="theme-badge-active"><i class="fas fa-check-circle"></i> Sedang Aktif</span>
+                                                <div class="theme-icon-box theme-katalog">
+                                                    <i class="fas fa-shopping-bag"></i>
+                                                </div>
+                                                <span class="badge bg-success mb-2" style="width: fit-content;">Toko Online / Bisnis</span>
+                                                <h5 class="fw-bold mb-1">Katalog Toko & UMKM</h5>
+                                                <p class="text-muted small mb-3 flex-grow-1">Format etalase produk, galeri foto barang dagangan, deskripsi produk, dan tombol chat pemesanan langsung via WhatsApp.</p>
+                                                <button type="button" class="btn btn-sm btn-outline-success w-100 select-theme-btn">Pilih Template</button>
                                             </div>
                                         </div>
+
+                                        <!-- TEMPLATE 3: COMPANY PROFILE -->
                                         <div class="col-md-4 mb-3">
-                                            <div class="theme-card" data-theme="theme-3">
-                                                <div class="theme-preview theme-3"></div>
-                                                <h6>Orange</h6>
-                                                <small class="text-muted">Hangat & Ramah</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4 mb-3">
-                                            <div class="theme-card" data-theme="theme-4">
-                                                <div class="theme-preview theme-4"></div>
-                                                <h6>Dark</h6>
-                                                <small class="text-muted">Elegan & Misterius</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4 mb-3">
-                                            <div class="theme-card" data-theme="theme-5">
-                                                <div class="theme-preview theme-5"></div>
-                                                <h6>Blue</h6>
-                                                <small class="text-muted">Profesional</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4 mb-3">
-                                            <div class="theme-card" data-theme="theme-6">
-                                                <div class="theme-preview theme-6"></div>
-                                                <h6>Pink</h6>
-                                                <small class="text-muted">Cantik & Lembut</small>
+                                            <div class="theme-card" data-theme="company">
+                                                <span class="theme-badge-active"><i class="fas fa-check-circle"></i> Sedang Aktif</span>
+                                                <div class="theme-icon-box theme-company">
+                                                    <i class="fas fa-briefcase"></i>
+                                                </div>
+                                                <span class="badge bg-primary mb-2" style="width: fit-content;">Profil & Lembaga</span>
+                                                <h5 class="fw-bold mb-1">Company Profile</h5>
+                                                <p class="text-muted small mb-3 flex-grow-1">Landing page profesional untuk profil perusahaan, visi-misi, pilar layanan unggulan, artikel publikasi, dan kontak bisnis.</p>
+                                                <button type="button" class="btn btn-sm btn-outline-primary w-100 select-theme-btn">Pilih Template</button>
                                             </div>
                                         </div>
                                     </div>
-                                    <input type="hidden" id="active_theme" value="theme-1">
+                                    <input type="hidden" id="active_theme" value="dinas">
                                 </div>
                             </div>
                         </div>
@@ -176,10 +198,12 @@
         $(document).ready(function() {
             loadSettings();
 
-            $(document).on('click', '.theme-card', function() {
+            $(document).on('click', '.theme-card, .select-theme-btn', function(e) {
+                const card = $(this).closest('.theme-card');
+                const theme = card.data('theme');
                 $('.theme-card').removeClass('active');
-                $(this).addClass('active');
-                $('#active_theme').val($(this).data('theme'));
+                card.addClass('active');
+                $('#active_theme').val(theme);
             });
 
             $('#settings-form').on('submit', function(e) {
@@ -221,8 +245,9 @@
                         $('#site_url').val(d.site_url || '');
                         $('#footer_text').val(d.footer_text || '');
                         if (d.active_theme) {
-                            $('#active_theme').val(d.active_theme);
-                            $(`.theme-card[data-theme="${d.active_theme}"]`).addClass('active');
+                            const active = (d.active_theme === 'default') ? 'dinas' : d.active_theme;
+                            $('#active_theme').val(active);
+                            $(`.theme-card[data-theme="${active}"]`).addClass('active');
                         }
                     }
                 }

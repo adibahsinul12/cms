@@ -14,13 +14,13 @@ if (!function_exists('get_role_permissions')) {
     function get_role_permissions($role_id) {
         $permissions = [
             // Admin: akses semua menu
-            1 => ['dashboard', 'posts', 'categories', 'tags', 'media', 'comments', 'users', 'seo', 'settings', 'logs'],
+            1 => ['dashboard', 'posts', 'categories', 'tags', 'media', 'comments', 'users', 'seo', 'settings', 'logs', 'my_site'],
 
-            // Editor: kelola semua konten, tapi tidak bisa kelola user/settings/logs
-            3 => ['dashboard', 'posts', 'categories', 'tags', 'media', 'comments', 'seo'],
+            // Editor: kelola semua konten, serta website profilnya
+            3 => ['dashboard', 'posts', 'categories', 'tags', 'media', 'comments', 'seo', 'my_site'],
 
-            // Author: cuma kelola post & media, tidak bisa kelola taksonomi/komentar/dll
-            4 => ['dashboard', 'posts', 'media'],
+            // Author: kelola post & media, serta template & website pribadinya sendiri
+            4 => ['dashboard', 'posts', 'media', 'my_site'],
         ];
 
         return $permissions[$role_id] ?? [];

@@ -39,18 +39,22 @@ class Auth extends Base_api {
 
         $sql = "CALL sp_register_user(?, ?, ?, ?, ?)";
         $query = $this->db->query($sql, [
-            2, // HARDCODE: role_id SELALU 2 (User biasa) untuk registrasi publik.
-               // Jangan pernah ambil role_id dari $input_data, karena bisa dimanipulasi
-               // orang lain (misal via Postman) untuk jadi Admin (role_id 1) sendiri.
+            4, // UNIVERSAL: role_id 4 (Author) untuk registrasi publik.
+               // Siapapun yang mendaftar langsung bisa membuat konten & postingan sendiri di dashboard.
+               // Nilai ini tetap di-hardcode di server (bukan dari input) agar tidak bisa disalahgunakan jadi Admin (role 1).
             $input_data['username'],
             $input_data['email'],
             password_hash($input_data['password'], PASSWORD_BCRYPT),
             $input_data['full_name']
         ]);
 
-        $result = $query->row_array();
-        $query->next_result();
-        $query->free_result();
+        $result = $query ? $query->row_array() : [];
+        if ($query) {
+            $query->free_result();
+        }
+        if ($this->db->conn_id && mysqli_more_results($this->db->conn_id)) {
+            mysqli_next_result($this->db->conn_id);
+        }
 
         if ($result && isset($result['user_id'])) {
             $this->response_success(['user_id' => $result['user_id']], 'Registrasi berhasil!', 201);

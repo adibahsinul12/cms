@@ -111,9 +111,12 @@
                                         <input class="form-check-input" type="checkbox" id="enable_robots" checked>
                                         <label class="form-check-label" for="enable_robots">Robots.txt</label>
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="btn-download-sitemap">
                                         <i class="fas fa-download"></i> Download Sitemap
                                     </button>
+                                    <a href="<?= base_url('sitemap.xml') ?>" target="_blank" class="btn btn-sm btn-link mt-2 text-decoration-none">
+                                        <i class="fas fa-external-link-alt"></i> Lihat Live
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -129,6 +132,13 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
+            loadSeoSettings();
+
+            // Download Sitemap
+            $('#btn-download-sitemap').on('click', function() {
+                window.location.href = '<?= base_url("sitemap.xml?download=1") ?>';
+            });
+
             // Counter
             $('#meta_title').on('input', function() {
                 $('#title-count').text($(this).val().length);
@@ -138,6 +148,38 @@
                 $('#desc-count').text($(this).val().length);
                 $('#preview-desc').text($(this).val() || 'Meta description akan muncul di sini...');
             });
+
+            // Load existing settings
+            function loadSeoSettings() {
+                $.ajax({
+                    url: '<?= base_url("api/seo") ?>',
+                    method: 'GET',
+                    success: function(res) {
+                        if (res.data) {
+                            const s = res.data;
+                            $('#meta_title').val(s.meta_title || '');
+                            $('#meta_description').val(s.meta_description || '');
+                            $('#meta_keywords').val(s.meta_keywords || '');
+                            $('#og_title').val(s.og_title || '');
+                            $('#og_description').val(s.og_description || '');
+                            $('#og_image').val(s.og_image || '');
+
+                            const isSitemap = s.enable_sitemap === undefined ? true : (s.enable_sitemap == '1' || s.enable_sitemap === true);
+                            const isRobots = s.enable_robots === undefined ? true : (s.enable_robots == '1' || s.enable_robots === true);
+                            $('#enable_sitemap').prop('checked', isSitemap);
+                            $('#enable_robots').prop('checked', isRobots);
+
+                            $('#title-count').text($('#meta_title').val().length);
+                            $('#desc-count').text($('#meta_description').val().length);
+                            if (s.meta_title) $('#preview-title').text(s.meta_title);
+                            if (s.meta_description) $('#preview-desc').text(s.meta_description);
+                        }
+                    },
+                    error: function() {
+                        showAlert('Gagal memuat pengaturan SEO saat ini.', 'warning');
+                    }
+                });
+            }
 
             // Submit
             $('#seo-form').on('submit', function(e) {
@@ -161,8 +203,8 @@
                     success: function() {
                         showAlert('SEO settings berhasil disimpan!', 'success');
                     },
-                    error: function() {
-                        showAlert('Gagal menyimpan (API belum tersedia)', 'warning');
+                    error: function(xhr) {
+                        showAlert(xhr.responseJSON?.message || 'Gagal menyimpan SEO settings', 'danger');
                     }
                 });
             });

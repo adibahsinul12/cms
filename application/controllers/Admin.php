@@ -17,6 +17,7 @@ class Admin extends CI_Controller {
         'comments'    => 'comments',
         'logs'        => 'logs',
         'seo'         => 'seo',
+        'my_site'     => 'my_site',
     ];
 
     public function __construct() {
@@ -61,4 +62,5 @@ class Admin extends CI_Controller {
     public function comments() { $this->load->view('admin/comments/index'); }
     public function logs() { $this->load->view('admin/logs/index'); }
     public function seo() { $this->load->view('admin/seo/index'); }
+    public function my_site() { $this->load->view('admin/my_site/index'); }
 }

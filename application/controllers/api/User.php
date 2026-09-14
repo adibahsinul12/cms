@@ -9,9 +9,9 @@ class User extends Base_api {
         parent::__construct();
         $this->load->model('User_model');
         // Manajemen user (list/create/update/delete/approval) HANYA untuk Admin.
-        // request_role() dikecualikan secara manual di dalam method-nya sendiri,
-        // karena itu dipanggil oleh User biasa (role 2), bukan Admin.
-        if ($this->router->fetch_method() !== 'request_role') {
+        // request_role() dan my_site() dikecualikan, karena dipanggil oleh user yang sedang login.
+        $user_methods = ['request_role', 'my_site'];
+        if (!in_array($this->router->fetch_method(), $user_methods, true)) {
             $this->require_role([1]);
         } else {
             $this->require_login();
@@ -221,5 +221,44 @@ class User extends Base_api {
         ]);
 
         $this->response_success(null, 'Pengajuan ditolak.', 200);
+    }
+
+    // [GET/POST] /api/user/my_site
+    public function my_site() {
+        $user_id = $this->current_user['id'];
+        $user = $this->User_model->get_by_id($user_id);
+
+        if (!$user) {
+            $this->response_error('User not found', 404);
+            return;
+        }
+
+        if (strtoupper($this->input->server('REQUEST_METHOD')) === 'POST' || $this->input->method() === 'post') {
+            $raw_input = file_get_contents('php://input');
+            $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
+
+            $update_data = [
+                'site_title' => $input_data['site_title'] ?? $user['site_title'],
+                'site_bio'   => $input_data['site_bio'] ?? $user['site_bio'],
+                'site_theme' => !empty($input_data['site_theme']) ? $input_data['site_theme'] : ($user['site_theme'] ?: 'dinas'),
+                'phone_wa'   => $input_data['phone_wa'] ?? $user['phone_wa'],
+            ];
+
+            $this->User_model->update($user_id, $update_data);
+            $this->response_success(null, 'Pengaturan website pribadi berhasil disimpan!', 200);
+            return;
+        }
+
+        $user_site_data = [
+            'username'   => $user['username'],
+            'full_name'  => $user['full_name'],
+            'site_title' => $user['site_title'] ?: $user['full_name'],
+            'site_bio'   => $user['site_bio'] ?: '',
+            'site_theme' => $user['site_theme'] ?: 'dinas',
+            'phone_wa'   => $user['phone_wa'] ?: '',
+            'site_url'   => base_url('u/' . $user['username']),
+        ];
+
+        $this->response_success($user_site_data, 'OK', 200);
     }
 }

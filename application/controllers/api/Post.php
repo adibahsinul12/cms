@@ -16,8 +16,14 @@ class Post extends Base_api {
         $offset = $this->input->get('offset') ? $this->input->get('offset') : 0;
         $status = $this->input->get('status');
 
-        $posts = $this->Post_model->get_posts($limit, $offset, $status);
-        $total = $this->Post_model->count_posts($status);
+        $author_filter = null;
+        // Author (role 4) hanya melihat postingannya sendiri
+        if ((int)$this->current_user['role_id'] === 4) {
+            $author_filter = $this->current_user['id'];
+        }
+
+        $posts = $this->Post_model->get_posts($limit, $offset, $status, $author_filter);
+        $total = $this->Post_model->count_posts($status, $author_filter);
 
         $this->response([
             'status' => 'success',

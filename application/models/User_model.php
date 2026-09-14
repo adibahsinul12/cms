@@ -9,12 +9,12 @@ class User_model extends CI_Model {
     }
 
     public function get_all() {
-        $this->db->select('id, role_id, requested_role_id, request_status, nip, username, email, full_name, status, created_at');
+        $this->db->select('id, role_id, requested_role_id, request_status, nip, username, email, full_name, site_title, site_bio, site_theme, phone_wa, status, created_at');
         return $this->db->get('users')->result_array();
     }
 
     public function get_by_id($id) {
-        $this->db->select('id, role_id, requested_role_id, request_status, nip, username, email, full_name, status, created_at');
+        $this->db->select('id, role_id, requested_role_id, request_status, nip, username, email, full_name, site_title, site_bio, site_theme, phone_wa, status, created_at');
         $this->db->where('id', $id);
         return $this->db->get('users')->row_array();
     }
@@ -22,6 +22,11 @@ class User_model extends CI_Model {
     public function get_by_username($username) {
         $this->db->where('username', $username);
         $this->db->or_where('email', $username);
+        return $this->db->get('users')->row_array();
+    }
+
+    public function get_by_username_exact($username) {
+        $this->db->where('username', $username);
         return $this->db->get('users')->row_array();
     }
 

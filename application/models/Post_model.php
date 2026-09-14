@@ -39,9 +39,13 @@ class Post_model extends CI_Model {
             $tag_id
         ]);
         
-        $result = $query->row_array();
-        $query->next_result();
-        $query->free_result();
+        $result = $query ? $query->row_array() : [];
+        if ($query) {
+            $query->free_result();
+        }
+        if ($this->db->conn_id && mysqli_more_results($this->db->conn_id)) {
+            mysqli_next_result($this->db->conn_id);
+        }
         
         return $result['created_post_id'] ?? false;
     }
@@ -49,7 +53,7 @@ class Post_model extends CI_Model {
     /**
      * READ POST - Get all posts
      */
-    public function get_posts($limit = null, $offset = 0, $status = null) {
+    public function get_posts($limit = null, $offset = 0, $status = null, $author_id = null) {
         $this->db->select('
             posts.*,
             users.full_name as author_name,
@@ -67,6 +71,10 @@ class Post_model extends CI_Model {
         
         if ($status) {
             $this->db->where('posts.status', $status);
+        }
+
+        if ($author_id) {
+            $this->db->where('posts.author_id', $author_id);
         }
         
         $this->db->order_by('posts.created_at', 'DESC');
@@ -167,9 +175,12 @@ class Post_model extends CI_Model {
     /**
      * COUNT POSTS
      */
-    public function count_posts($status = null) {
+    public function count_posts($status = null, $author_id = null) {
         if ($status) {
             $this->db->where('status', $status);
+        }
+        if ($author_id) {
+            $this->db->where('author_id', $author_id);
         }
         return $this->db->count_all_results('posts');
     }

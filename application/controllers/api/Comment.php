@@ -45,15 +45,35 @@ class Comment extends Base_api {
             $input_data['parent_id'] ?? null
         ]);
 
-        $result = $query->row_array();
-        $query->next_result();
-        $query->free_result();
+        $result = $query ? $query->row_array() : [];
+        if ($query) {
+            $query->free_result();
+        }
+        if ($this->db->conn_id && mysqli_more_results($this->db->conn_id)) {
+            mysqli_next_result($this->db->conn_id);
+        }
 
         $this->response_success(['comment_id' => $result['comment_id']], 'Komentar dikirim, menunggu moderasi', 201);
     }
 
+    // [GET] /api/comments/post/(:num) - PUBLIK, ambil komentar berstatus 'approved' untuk post tertentu
+    public function post_comments($post_id = null) {
+        if (!$post_id || !is_numeric($post_id)) {
+            $this->response_error('Post ID wajib diisi dan berupa angka!', 400);
+            return;
+        }
+
+        $comments = $this->Comment_model->get_all('approved', $post_id);
+        $this->response_success($comments, 'OK', 200);
+    }
+
     // [POST/PUT] /api/comments/(:num) - Moderasi (ubah status approve/reject), khusus Admin & Editor
     public function update($id) {
+        // Forward ke delete jika request method adalah DELETE
+        if (strtolower($this->input->method()) === 'delete') {
+            return $this->delete($id);
+        }
+
         $this->require_role([1, 3, 4]); // Admin, Editor, Author
 
         $existing = $this->Comment_model->get_by_id($id);

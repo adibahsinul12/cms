@@ -8,7 +8,10 @@ class Media_model extends CI_Model {
         $this->load->database();
     }
     
-    public function get_all() {
+    public function get_all($uploaded_by = null) {
+        if ($uploaded_by) {
+            $this->db->where('uploaded_by', $uploaded_by);
+        }
         $this->db->order_by('created_at', 'DESC');
         return $this->db->get('media')->result_array();
     }

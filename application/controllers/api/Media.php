@@ -21,7 +21,13 @@ class Media extends Base_api {
 
     // [GET] /api/media
     public function index() {
-        $data = $this->Media_model->get_all();
+        $uploaded_by = null;
+        // Author (role 4) hanya melihat media yang diupload dirinya sendiri
+        if ((int)$this->current_user['role_id'] === 4) {
+            $uploaded_by = $this->current_user['id'];
+        }
+
+        $data = $this->Media_model->get_all($uploaded_by);
         $data = array_map([$this, 'add_file_url'], $data);
         $this->response_success($data, 'OK', 200);
     }
@@ -73,9 +79,13 @@ class Media extends Base_api {
             null
         ]);
 
-        $result = $query->row_array();
-        $query->next_result();
-        $query->free_result();
+        $result = $query ? $query->row_array() : [];
+        if ($query) {
+            $query->free_result();
+        }
+        if ($this->db->conn_id && mysqli_more_results($this->db->conn_id)) {
+            mysqli_next_result($this->db->conn_id);
+        }
 
         $this->response_success([
             'id'        => $result['media_id'] ?? null,
@@ -110,6 +120,12 @@ class Media extends Base_api {
         $existing = $this->Media_model->get_by_id($id);
         if (!$existing) {
             $this->response_error('Media not found', 404);
+            return;
+        }
+
+        // Author (role 4) hanya boleh menghapus media miliknya sendiri
+        if ((int)$this->current_user['role_id'] === 4 && (int)$existing['uploaded_by'] !== (int)$this->current_user['id']) {
+            $this->response_error('Anda hanya dapat menghapus media milik Anda sendiri.', 403);
             return;
         }
 

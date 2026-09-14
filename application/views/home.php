@@ -13,7 +13,7 @@ $staff_roles = [1, 3, 4];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Resmi Diskominfo</title>
+    <title><?= htmlspecialchars($site_name ?? 'Portal Resmi Daerah') ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -421,12 +421,12 @@ $staff_roles = [1, 3, 4];
         }
     </style>
 </head>
-<body>
+<body class="<?= htmlspecialchars($active_theme ?? 'default') ?>">
 
     <nav class="navbar" id="navbar">
         <div class="wrap">
             <a class="brand" href="#">
-                <span class="mark">🌐</span> Portal Diskominfo
+                <span class="mark">🌐</span> <?= htmlspecialchars($site_name ?? 'Portal Diskominfo') ?>
             </a>
 
             <?php if (!$is_logged_in): ?>
@@ -437,7 +437,7 @@ $staff_roles = [1, 3, 4];
                 <!-- SUDAH LOGIN SEBAGAI STAFF (Admin/Editor/Author) -->
                 <div class="nav-auth">
                     <a href="<?= base_url('admin/dashboard') ?>" class="btn-login">
-                        <i class="fas fa-th-large"></i> Dashboard Admin
+                        <i class="fas fa-th-large"></i> Dashboard
                     </a>
                     <button type="button" class="nav-user-btn" id="btn-nav-user">
                         <?= htmlspecialchars($current_name ?: 'Akun') ?> ▾
@@ -500,10 +500,42 @@ $staff_roles = [1, 3, 4];
         </div>
     </div>
 
+    <!-- MODAL: Baca Berita & Tulis Komentar -->
+    <div class="modal-overlay" id="post-detail-modal">
+        <div class="modal-box" style="max-width: 680px; max-height: 85vh; overflow-y: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                <span id="post-detail-category" style="background:var(--blue-500); color:#fff; font-size:11.5px; font-weight:600; padding:3px 10px; border-radius:4px;">Berita</span>
+                <button type="button" class="btn-plain" id="btn-close-post" style="border:none; font-size:22px; cursor:pointer; padding:0 6px; line-height:1;">&times;</button>
+            </div>
+            <h2 id="post-detail-title" style="font-size:24px; font-weight:700; margin-bottom:8px; line-height:1.3; color:var(--navy-900);"></h2>
+            <div id="post-detail-meta" style="color:var(--muted); font-size:12.5px; margin-bottom:18px;"></div>
+            <div id="post-detail-content" style="font-size:15px; line-height:1.7; color:var(--ink); margin-bottom:28px; border-bottom:1px solid var(--border); padding-bottom:24px;"></div>
+
+            <!-- Bagian Komentar -->
+            <h3 style="font-size:18px; font-weight:600; margin-bottom:12px; color:var(--navy-900);">💬 Komentar (<span id="comment-count">0</span>)</h3>
+            <div id="comments-list" style="margin-bottom:22px; display:flex; flex-direction:column; gap:10px;"></div>
+
+            <!-- Form Tulis Komentar -->
+            <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:16px;">
+                <h4 style="font-size:14px; font-weight:600; margin-bottom:10px; color:var(--navy-900);">Tulis Komentar</h4>
+                <input type="hidden" id="comment-post-id">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <input type="text" id="comment-author-name" placeholder="Nama Anda *" style="padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit;">
+                    <input type="email" id="comment-author-email" placeholder="Email (opsional)" style="padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit;">
+                </div>
+                <textarea id="comment-content" rows="3" placeholder="Tulis komentar atau tanggapan Anda... *" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit; margin-bottom:10px; resize:vertical;"></textarea>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <small id="comment-msg" style="font-size:12.5px; font-weight:500;"></small>
+                    <button type="button" class="btn-primary-solid" id="btn-submit-comment" style="font-size:13px; padding:7px 18px;">Kirim Komentar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <header class="hero">
         <div class="wrap">
             <div class="eyebrow">Layanan Informasi Publik</div>
-            <h1>Berita dan pengumuman resmi daerah, satu tempat terpercaya.</h1>
+            <h1><?= htmlspecialchars($site_description ?? 'Berita dan pengumuman resmi daerah, satu tempat terpercaya.') ?></h1>
             <p>Diskominfo menyajikan informasi terkini seputar kebijakan, kegiatan, dan layanan pemerintah untuk warga.</p>
             <div class="search-box">
                 <input type="text" id="search-input" placeholder="Cari berita berdasarkan judul...">
@@ -528,7 +560,7 @@ $staff_roles = [1, 3, 4];
     </main>
 
     <footer>
-        &copy; 2026 Portal Diskominfo. Seluruh hak cipta dilindungi.
+        <?= htmlspecialchars($footer_text ?? '&copy; 2026 Portal Diskominfo. Seluruh hak cipta dilindungi.') ?>
     </footer>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -558,7 +590,7 @@ $staff_roles = [1, 3, 4];
             const [featured, ...rest] = posts;
 
             html += `
-                <div class="featured-card">
+                <div class="featured-card" data-id="${featured.id}" style="cursor:pointer;">
                     <span class="tag">Sorotan</span>
                     <h3>${featured.title}</h3>
                     <p>${featured.excerpt || 'Tidak ada ringkasan.'}</p>
@@ -572,7 +604,7 @@ $staff_roles = [1, 3, 4];
             } else {
                 rest.forEach(function(post) {
                     html += `
-                        <div class="news-item">
+                        <div class="news-item" data-id="${post.id}" style="cursor:pointer;">
                             <h3>${post.title}</h3>
                             <p>${post.excerpt || 'Tidak ada ringkasan.'}</p>
                             <span class="date">${formatDate(post.created_at)}</span>
@@ -703,6 +735,102 @@ $staff_roles = [1, 3, 4];
                     },
                     error: function(xhr) {
                         alert(xhr.responseJSON?.message || 'Gagal mengirim pengajuan');
+                    }
+                });
+            });
+
+            // ===== Baca Berita & Tulis Komentar =====
+            $(document).on('click', '.featured-card, .news-item', function() {
+                const id = $(this).data('id');
+                const post = allPosts.find(p => p.id == id);
+                if (!post) return;
+
+                $('#post-detail-title').text(post.title);
+                $('#post-detail-category').text(post.category_name || 'Berita');
+                $('#post-detail-meta').text(`Ditulis oleh ${post.author_name || 'Admin'} • ${formatDate(post.created_at)}`);
+                $('#post-detail-content').html(post.content || post.excerpt || '<p>Tidak ada isi konten.</p>');
+                $('#comment-post-id').val(post.id);
+                $('#comment-msg').text('').attr('style', '');
+
+                loadPostComments(post.id);
+                $('#post-detail-modal').addClass('show');
+            });
+
+            $('#btn-close-post').on('click', function() {
+                $('#post-detail-modal').removeClass('show');
+            });
+
+            $(document).on('click', function(e) {
+                if ($(e.target).is('#post-detail-modal')) {
+                    $('#post-detail-modal').removeClass('show');
+                }
+            });
+
+            function loadPostComments(postId) {
+                $('#comments-list').html('<small style="color:var(--muted)">Memuat komentar...</small>');
+                $.ajax({
+                    url: `<?= base_url("api/comments/post") ?>/${postId}`,
+                    method: 'GET',
+                    success: function(res) {
+                        const comments = res.data || [];
+                        $('#comment-count').text(comments.length);
+                        if (comments.length === 0) {
+                            $('#comments-list').html('<small style="color:var(--muted)">Belum ada komentar yang disetujui. Jadilah yang pertama berkomentar!</small>');
+                            return;
+                        }
+                        let html = '';
+                        comments.forEach(function(c) {
+                            html += `
+                                <div style="background:#fff; border:1px solid var(--border); border-radius:6px; padding:10px 12px;">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                        <strong style="font-size:13px; color:var(--navy-900);">${c.author_name || 'Pembaca'}</strong>
+                                        <span style="font-size:11.5px; color:var(--muted);">${new Date(c.created_at).toLocaleDateString('id-ID')}</span>
+                                    </div>
+                                    <p style="font-size:13px; color:var(--ink); margin:0;">${c.content}</p>
+                                </div>
+                            `;
+                        });
+                        $('#comments-list').html(html);
+                    },
+                    error: function() {
+                        $('#comments-list').html('<small style="color:#C4432A">Gagal memuat komentar.</small>');
+                    }
+                });
+            }
+
+            $('#btn-submit-comment').on('click', function() {
+                const postId = $('#comment-post-id').val();
+                const name = $('#comment-author-name').val().trim();
+                const email = $('#comment-author-email').val().trim();
+                const content = $('#comment-content').val().trim();
+
+                if (!content) {
+                    $('#comment-msg').css('color', '#C4432A').text('Isi komentar wajib diisi!');
+                    return;
+                }
+
+                const data = {
+                    post_id: parseInt(postId, 10),
+                    author_name: name || 'Anonim',
+                    author_email: email || null,
+                    content: content
+                };
+
+                $('#btn-submit-comment').prop('disabled', true).text('Mengirim...');
+
+                $.ajax({
+                    url: '<?= base_url("api/comments/add") ?>',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function() {
+                        $('#comment-msg').css('color', '#107C41').text('Komentar berhasil dikirim, menunggu moderasi admin.');
+                        $('#comment-content').val('');
+                        $('#btn-submit-comment').prop('disabled', false).text('Kirim Komentar');
+                    },
+                    error: function(xhr) {
+                        $('#comment-msg').css('color', '#C4432A').text(xhr.responseJSON?.message || 'Gagal mengirim komentar.');
+                        $('#btn-submit-comment').prop('disabled', false).text('Kirim Komentar');
                     }
                 });
             });

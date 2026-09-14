@@ -81,10 +81,14 @@ $route['api/post/meta/delete/(:num)']     = 'api/post_meta/delete/$1';
 // ==========================================
 // 6. API ROUTES (Stage 5 - AMERIKA)
 // ==========================================
-$route['api/comments']               = 'api/comment/index';
-$route['api/comments/add']           = 'api/comment/add';
-$route['api/comments/(:num)']        = 'api/comment/update/$1';
-$route['api/comments/delete/(:num)'] = 'api/comment/delete/$1';
+$route['api/comments']                  = 'api/comment/index';
+$route['api/comments/add']              = 'api/comment/add';
+$route['api/comments/post/(:num)']      = 'api/comment/post_comments/$1';
+$route['api/comments/(:num)']['delete'] = 'api/comment/delete/$1';
+$route['api/comments/(:num)']['put']    = 'api/comment/update/$1';
+$route['api/comments/(:num)']['post']   = 'api/comment/update/$1';
+$route['api/comments/(:num)']           = 'api/comment/update/$1';
+$route['api/comments/delete/(:num)']    = 'api/comment/delete/$1';
 
 $route['api/logs']                   = 'api/log/index';
 
@@ -95,3 +99,14 @@ $route['login']                      = 'auth_view/login';
 $route['register']                   = 'auth_view/register';
 $route['home']                       = 'home_view/index';
 $route['api/public/posts']           = 'api/public_posts/index';
+$route['sitemap.xml']                = 'sitemap/index';
+$route['sitemap']                    = 'sitemap/index';
+
+// ==========================================
+// 8. USER PERSONAL SITE (Multi-Site)
+// ==========================================
+$route['api/user/my-site']           = 'api/user/my_site';
+$route['api/user/my_site']           = 'api/user/my_site';
+$route['admin/my-site']              = 'admin/my_site';
+$route['admin/my_site']              = 'admin/my_site';
+$route['u/(:any)']                   = 'site/view/$1';
