@@ -56,13 +56,20 @@ class Post extends Base_api {
         $raw_input = file_get_contents('php://input');
         $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
 
-        if (empty($input_data['title']) || empty($input_data['slug']) || empty($input_data['author_id'])) {
-            $this->response_error('Title, Slug, dan Author ID wajib diisi!', 400);
+        if (empty($input_data['title']) || empty($input_data['slug'])) {
+            $this->response_error('Title dan Slug wajib diisi!', 400);
             return;
         }
 
+        // Keamanan: Author ID default ke user yang sedang login dari session.
+        // Hanya Admin (role 1) yang boleh assign author_id ke user lain.
+        $author_id = $this->current_user['id'];
+        if ((int)$this->current_user['role_id'] === 1 && !empty($input_data['author_id'])) {
+            $author_id = $input_data['author_id'];
+        }
+
         $data = [
-            'author_id'         => $input_data['author_id'],
+            'author_id'         => $author_id,
             'type'              => isset($input_data['type']) ? $input_data['type'] : 'post',
             'title'             => $input_data['title'],
             'slug'              => $input_data['slug'],
@@ -93,6 +100,12 @@ class Post extends Base_api {
         $existing = $this->Post_model->get_post_by_id($id);
         if (!$existing) {
             $this->response_error('Post not found', 404);
+            return;
+        }
+
+        // Keamanan: Author (role 4) hanya boleh mengedit post miliknya sendiri
+        if ((int)$this->current_user['role_id'] === 4 && (int)$existing['author_id'] !== (int)$this->current_user['id']) {
+            $this->response_error('Anda hanya dapat mengubah post milik Anda sendiri.', 403);
             return;
         }
 
@@ -129,6 +142,12 @@ class Post extends Base_api {
         $existing = $this->Post_model->get_post_by_id($id);
         if (!$existing) {
             $this->response_error('Post not found', 404);
+            return;
+        }
+
+        // Keamanan: Author (role 4) hanya boleh menghapus post miliknya sendiri
+        if ((int)$this->current_user['role_id'] === 4 && (int)$existing['author_id'] !== (int)$this->current_user['id']) {
+            $this->response_error('Anda hanya dapat menghapus post milik Anda sendiri.', 403);
             return;
         }
 

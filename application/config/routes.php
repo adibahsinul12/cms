@@ -59,12 +59,21 @@ $route['api/user/detail/(:num)']     = 'api/user/detail/$1';
 $route['api/user/create']            = 'api/user/create';
 $route['api/user/update/(:num)']     = 'api/user/update/$1';
 $route['api/user/delete/(:num)']     = 'api/user/delete/$1';
+$route['api/user/request-role']           = 'api/user/request_role';
+$route['api/user/request_role']           = 'api/user/request_role';
+$route['api/user/pending-requests']       = 'api/user/pending_requests';
+$route['api/user/pending_requests']       = 'api/user/pending_requests';
+$route['api/user/approve-request/(:num)'] = 'api/user/approve_request/$1';
+$route['api/user/approve_request/(:num)'] = 'api/user/approve_request/$1';
+$route['api/user/reject-request/(:num)']  = 'api/user/reject_request/$1';
+$route['api/user/reject_request/(:num)']  = 'api/user/reject_request/$1';
 
 // ==========================================
 // 5. API ROUTES (Stage 4 - INGGRIS)
 // ==========================================
 $route['api/settings']               = 'api/settings/index';
 $route['api/seo']                    = 'api/seo/index';
+$route['api/post/meta']                  = 'api/post_meta/detail';
 $route['api/post/meta/(:num)']            = 'api/post_meta/detail/$1';
 $route['api/post/meta/save/(:num)']       = 'api/post_meta/save/$1';
 $route['api/post/meta/delete/(:num)']     = 'api/post_meta/delete/$1';
