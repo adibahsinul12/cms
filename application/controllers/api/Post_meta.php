@@ -1,94 +1,74 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-$route['default_controller']   = 'home_view/index';
-$route['404_override']         = '';
-$route['translate_uri_dashes'] = FALSE;
+require_once APPPATH . 'controllers/api/Base_api.php';
 
-// ==========================================
-// FRONTEND ADMIN ROUTES
-// ==========================================
-$route['admin']                  = 'admin/dashboard';
-$route['admin/dashboard']        = 'admin/dashboard';
-$route['admin/posts']            = 'admin/posts';
-$route['admin/posts/create']     = 'admin/create_post';
-$route['admin/posts/edit/(:num)'] = 'admin/edit_post/$1';
-$route['admin/categories']       = 'admin/categories';
-$route['admin/tags']             = 'admin/tags';
-$route['admin/media']            = 'admin/media';
-$route['admin/users']            = 'admin/users';
-$route['admin/settings']         = 'admin/settings';
-$route['admin/comments']         = 'admin/comments';
-$route['admin/logs']             = 'admin/logs';
-$route['admin/seo']              = 'admin/seo';
+class Post_meta extends Base_api {
 
-// ==========================================
-// STAGE 1 - INDONESIA (Posts, Category, Tag)
-// ==========================================
-$route['api/post']                  = 'api/post/index';
-$route['api/post/detail/(:num)']    = 'api/post/detail/$1';
-$route['api/post/create']           = 'api/post/create';
-$route['api/post/update/(:num)']    = 'api/post/update/$1';
-$route['api/post/delete/(:num)']    = 'api/post/delete/$1';
-$route['api/post/revisions/(:num)'] = 'api/post/revisions/$1';
+    public function __construct() {
+        parent::__construct();
+        $this->require_role([1, 3, 4]); // Admin, Editor, Author
+        $this->load->model('Post_meta_model');
+    }
 
-$route['api/category']               = 'api/category/index';
-$route['api/category/create']        = 'api/category/create';
-$route['api/category/update/(:num)'] = 'api/category/update/$1';
-$route['api/category/delete/(:num)'] = 'api/category/delete/$1';
-$route['api/category/(:num)']        = 'api/category/detail/$1';
+    // [GET] /api/post/meta/:post_id — Ambil semua meta untuk satu post
+    public function detail($post_id = NULL) {
+        if (!$post_id || !is_numeric($post_id)) {
+            $this->response_error('Post ID wajib diisi dan harus berupa angka!', 400);
+            return;
+        }
 
-$route['api/tag']                   = 'api/tag/index';
-$route['api/tag/create']            = 'api/tag/create';
-$route['api/tag/update/(:num)']     = 'api/tag/update/$1';
-$route['api/tag/delete/(:num)']     = 'api/tag/delete/$1';
-$route['api/tag/(:num)']            = 'api/tag/detail/$1';
+        $meta = $this->Post_meta_model->get_meta_by_post($post_id);
+        $this->response_success($meta, 'OK', 200);
+    }
 
-// ==========================================
-// STAGE 2 - JEPANG (Media)
-// ==========================================
-$route['api/media']                  = 'api/media/index';
-$route['api/media/(:num)']           = 'api/media/detail/$1';
-$route['api/media/upload']           = 'api/media/upload';
-$route['api/media/update/(:num)']    = 'api/media/update/$1';
-$route['api/media/delete/(:num)']    = 'api/media/delete/$1';
+    // [POST] /api/post/meta/:post_id — Simpan / update meta untuk satu post
+    public function save($post_id = NULL) {
+        if (!$post_id || !is_numeric($post_id)) {
+            $this->response_error('Post ID wajib diisi dan harus berupa angka!', 400);
+            return;
+        }
 
-// ==========================================
-// STAGE 3 - JERMAN (Auth & User)
-// ==========================================
-$route['api/auth/login']             = 'api/auth/login';
-$route['api/auth/register']          = 'api/auth/register';
-$route['api/auth/logout']            = 'api/auth/logout';
+        $raw_input  = file_get_contents('php://input');
+        $input_data = json_decode($raw_input, TRUE) ?: $this->input->post();
 
-$route['api/user']                   = 'api/user/index';
-$route['api/user/roles']             = 'api/user/roles';
-$route['api/user/detail/(:num)']     = 'api/user/detail/$1';
-$route['api/user/create']            = 'api/user/create';
-$route['api/user/update/(:num)']     = 'api/user/update/$1';
-$route['api/user/delete/(:num)']     = 'api/user/delete/$1';
+        // Terima format { "meta": { "key": "value" } } ATAU flat { "key": "value" }
+        $meta_data = isset($input_data['meta']) ? $input_data['meta'] : $input_data;
 
-// ==========================================
-// STAGE 4 - INGGRIS (Settings, SEO, Post Meta)
-// ==========================================
-$route['api/settings']               = 'api/settings/index';
-$route['api/seo']                    = 'api/seo/index';
-$route['api/post/meta']              = 'api/post_meta/index';
-$route['api/post/meta/(:num)']       = 'api/post_meta/detail/$1';
+        if (empty($meta_data) || !is_array($meta_data)) {
+            $this->response_error('Data meta tidak valid atau kosong!', 400);
+            return;
+        }
 
-// ==========================================
-// STAGE 5 - AMERIKA (Comment, Log)
-// ==========================================
-$route['api/comments']               = 'api/comment/index';
-$route['api/comments/add']           = 'api/comment/add';
-$route['api/comments/(:num)']        = 'api/comment/update/$1';
-$route['api/comments/delete/(:num)'] = 'api/comment/delete/$1';
+        $result = $this->Post_meta_model->sp_save_post_meta($post_id, $meta_data);
 
-$route['api/logs']                   = 'api/log/index';
+        if ($result) {
+            $this->response_success(null, 'Post meta berhasil disimpan!', 200);
+        } else {
+            $this->response_error('Gagal menyimpan post meta.', 500);
+        }
+    }
 
-// ==========================================
-// AUTH VIEW & FRONTEND
-// ==========================================
-$route['login']                      = 'auth_view/login';
-$route['register']                   = 'auth_view/register';
-$route['home']                       = 'home_view/index';
-$route['api/public/posts']           = 'api/public_posts/index';
+    // [DELETE] /api/post/meta/delete/:post_id — Hapus meta (semua atau key tertentu)
+    // Query param: ?meta_key=subtitle  → hapus satu key saja
+    // Tanpa query param              → hapus semua meta post tersebut
+    public function delete($post_id = NULL) {
+        if (!$post_id || !is_numeric($post_id)) {
+            $this->response_error('Post ID wajib diisi dan harus berupa angka!', 400);
+            return;
+        }
+
+        $meta_key = $this->input->get('meta_key') ?: NULL;
+
+        $result = $this->Post_meta_model->delete_meta($post_id, $meta_key);
+
+        if ($result) {
+            $msg = $meta_key
+                ? "Meta key '{$meta_key}' berhasil dihapus."
+                : 'Semua meta post berhasil dihapus.';
+            $this->response_success(null, $msg, 200);
+        } else {
+            $this->response_error('Gagal menghapus post meta.', 500);
+        }
+    }
+}

@@ -65,8 +65,9 @@ $route['api/user/delete/(:num)']     = 'api/user/delete/$1';
 // ==========================================
 $route['api/settings']               = 'api/settings/index';
 $route['api/seo']                    = 'api/seo/index';
-$route['api/post/meta']              = 'api/post_meta/index';
-$route['api/post/meta/(:num)']       = 'api/post_meta/detail/$1';
+$route['api/post/meta/(:num)']            = 'api/post_meta/detail/$1';
+$route['api/post/meta/save/(:num)']       = 'api/post_meta/save/$1';
+$route['api/post/meta/delete/(:num)']     = 'api/post_meta/delete/$1';
 
 // ==========================================
 // 6. API ROUTES (Stage 5 - AMERIKA)

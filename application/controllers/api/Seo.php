@@ -7,6 +7,7 @@ class Seo extends Base_api {
 
     public function __construct() {
         parent::__construct();
+        $this->require_role([1]); // Hanya Admin yang boleh baca & ubah SEO settings
         $this->load->model('Option_model');
     }
 
