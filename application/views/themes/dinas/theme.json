@@ -1,0 +1,26 @@
+{
+  "name": "Portal Dinas / Berita",
+  "slug": "dinas",
+  "author": "Diskominfo",
+  "version": "1.0.0",
+  "category": "Pemerintahan",
+  "description": "Format formal untuk portal instansi pemerintah daerah, kantor dinas/desa, dan media publikasi pengumuman resmi.",
+  "features": ["Berita Resmi", "Pencarian Cepat", "Komentar Moderasi", "Mobile Friendly"],
+  "default_options": {
+    "color_primary": "#0F2A47",
+    "color_secondary": "#E7A33E",
+    "font_heading": "Plus Jakarta Sans",
+    "font_body": "Inter",
+    "layout_columns": "2",
+    "sidebar_position": "right",
+    "header_style": "sticky",
+    "footer_style": "classic",
+    "enable_social": "1",
+    "social_facebook": "",
+    "social_instagram": "",
+    "social_twitter": "",
+    "custom_css": "",
+    "custom_js": ""
+  }
+}
+

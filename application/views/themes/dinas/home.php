@@ -1,0 +1,840 @@
+<?php
+// Ambil status login dari session (gaya sama seperti di sidebar.php)
+$CI =& get_instance();
+$CI->load->library('session');
+$is_logged_in = (bool) $CI->session->userdata('logged_in');
+$current_role = $CI->session->userdata('role_id');
+$current_name = $CI->session->userdata('full_name');
+$current_user_id = $CI->session->userdata('user_id');
+$staff_roles = [1, 3, 4];
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= htmlspecialchars($site_name ?? 'Portal Resmi Daerah') ?></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy-900: #0F2A47;
+            --navy-700: #1B4570;
+            --blue-500: #2F6FED;
+            --gold-500: #E7A33E;
+            --bg: #F6F8FB;
+            --ink: #16233A;
+            --muted: #5B6B84;
+            --border: #DCE4F0;
+            --white: #FFFFFF;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: 'Inter', system-ui, sans-serif;
+            line-height: 1.55;
+        }
+
+        h1, h2, h3, .headline {
+            font-family: 'Source Serif 4', Georgia, serif;
+            color: var(--navy-900);
+            margin: 0;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        .wrap {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Navbar */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: var(--navy-900);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            transition: padding 0.25s ease;
+        }
+        .navbar .wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 18px;
+            padding-bottom: 18px;
+            transition: padding 0.25s ease;
+        }
+        .navbar.is-scrolled .wrap { padding-top: 12px; padding-bottom: 12px; }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--white);
+            font-weight: 600;
+            font-size: 17px;
+            letter-spacing: 0.2px;
+        }
+        .brand .mark {
+            width: 30px; height: 30px;
+            border-radius: 7px;
+            background: linear-gradient(135deg, var(--blue-500), var(--gold-500));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px;
+        }
+
+        .btn-login {
+            border: 1px solid rgba(255,255,255,0.35);
+            color: var(--white);
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+        .btn-login:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.6);
+        }
+
+        /* Nav auth area (logged in state) */
+        .nav-auth {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .nav-user-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--white);
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 13.5px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .nav-user-btn:hover { background: rgba(255,255,255,0.15); }
+
+        .nav-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 12px 30px rgba(15,42,71,0.25);
+            min-width: 240px;
+            padding: 8px;
+            display: none;
+            z-index: 50;
+        }
+        .nav-dropdown.show { display: block; }
+        .nav-dropdown .dd-header {
+            padding: 8px 10px;
+            font-size: 12.5px;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 6px;
+        }
+        .nav-dropdown button, .nav-dropdown a {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            padding: 9px 10px;
+            font-family: inherit;
+            font-size: 13.5px;
+            color: var(--ink);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .nav-dropdown button:hover, .nav-dropdown a:hover {
+            background: var(--bg);
+        }
+        .nav-dropdown .btn-logout-item { color: #C4432A; }
+        .nav-dropdown .pending-note {
+            font-size: 12.5px;
+            color: var(--gold-500);
+            padding: 8px 10px;
+            background: #FFF7E8;
+            border-radius: 6px;
+            margin: 4px 0;
+        }
+
+        /* Request role modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,42,71,0.55);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 28px;
+            width: 100%;
+            max-width: 380px;
+        }
+        .modal-box h3 { font-size: 20px; margin-bottom: 8px; }
+        .modal-box p { color: var(--muted); font-size: 13.5px; margin-bottom: 20px; }
+        .role-choice {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .role-choice label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .role-choice label:hover { border-color: var(--blue-500); }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+        .btn-plain {
+            padding: 9px 16px;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--white);
+            color: var(--ink);
+        }
+        .btn-primary-solid {
+            padding: 9px 16px;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            background: var(--blue-500);
+            color: var(--white);
+        }
+
+        /* Hero */
+        .hero {
+            position: relative;
+            background: var(--navy-900);
+            overflow: hidden;
+            padding: 76px 0 96px;
+        }
+        .hero::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image:
+                radial-gradient(circle at 85% 15%, rgba(47,111,237,0.35), transparent 45%),
+                radial-gradient(circle at 15% 85%, rgba(231,163,62,0.18), transparent 40%);
+        }
+        .hero .wrap { position: relative; }
+        .eyebrow {
+            color: var(--gold-500);
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+        .hero h1 {
+            color: var(--white);
+            font-size: 44px;
+            font-weight: 600;
+            max-width: 620px;
+            line-height: 1.2;
+        }
+        .hero p {
+            color: rgba(255,255,255,0.75);
+            font-size: 17px;
+            max-width: 520px;
+            margin-top: 16px;
+        }
+
+        .search-box {
+            margin-top: 32px;
+            max-width: 460px;
+            display: flex;
+            background: var(--white);
+            border-radius: 8px;
+            padding: 4px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+        }
+        .search-box input {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 12px 14px;
+            font-family: inherit;
+            font-size: 14px;
+            color: var(--ink);
+            background: transparent;
+        }
+        .search-box button {
+            border: none;
+            background: var(--blue-500);
+            color: var(--white);
+            padding: 0 18px;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .search-box button:hover { background: #245ad0; }
+
+        /* News section */
+        .news-section { padding: 64px 0 80px; }
+        .section-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+            margin-bottom: 32px;
+        }
+        .section-head h2 { font-size: 26px; font-weight: 600; }
+        .result-count { color: var(--muted); font-size: 14px; }
+
+        .news-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 28px;
+        }
+
+        .featured-card {
+            background: var(--navy-900);
+            border-radius: 12px;
+            padding: 32px;
+            color: var(--white);
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            position: relative;
+            transition: transform 0.2s ease;
+        }
+        .featured-card:hover { transform: translateY(-3px); }
+        .featured-card .tag {
+            display: inline-block;
+            background: var(--gold-500);
+            color: var(--navy-900);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            width: fit-content;
+        }
+        .featured-card h3 {
+            color: var(--white);
+            font-size: 26px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .featured-card p {
+            color: rgba(255,255,255,0.75);
+            font-size: 14.5px;
+            margin: 0 0 14px;
+        }
+        .featured-card .date {
+            color: rgba(255,255,255,0.55);
+            font-size: 13px;
+        }
+
+        .news-list { display: flex; flex-direction: column; gap: 16px; }
+
+        .news-item {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px 20px;
+            transition: border-color 0.15s ease, transform 0.15s ease;
+        }
+        .news-item:hover {
+            border-color: var(--blue-500);
+            transform: translateX(2px);
+        }
+        .news-item h3 {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .news-item p {
+            color: var(--muted);
+            font-size: 13.5px;
+            margin: 0 0 10px;
+        }
+        .news-item .date {
+            color: var(--muted);
+            font-size: 12.5px;
+        }
+
+        .empty-state, .error-state, .loading-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+        .error-state { color: #C4432A; }
+
+        .spinner {
+            width: 32px; height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--blue-500);
+            border-radius: 50%;
+            margin: 0 auto 14px;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        footer {
+            background: var(--navy-900);
+            color: rgba(255,255,255,0.6);
+            padding: 28px 0;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        @media (max-width: 860px) {
+            .news-grid { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 32px; }
+        }
+    </style>
+</head>
+<body class="<?= htmlspecialchars($active_theme ?? 'default') ?>">
+
+    <nav class="navbar" id="navbar">
+        <div class="wrap">
+            <a class="brand" href="#">
+                <span class="mark">🌐</span> <?= htmlspecialchars($site_name ?? 'Portal Diskominfo') ?>
+            </a>
+
+            <?php if (!$is_logged_in): ?>
+                <!-- BELUM LOGIN -->
+                <a href="<?= base_url('login') ?>" class="btn-login">Login</a>
+
+            <?php elseif (in_array($current_role, $staff_roles, true)): ?>
+                <!-- SUDAH LOGIN SEBAGAI STAFF (Admin/Editor/Author) -->
+                <div class="nav-auth">
+                    <a href="<?= base_url('admin/dashboard') ?>" class="btn-login">
+                        <i class="fas fa-th-large"></i> Dashboard
+                    </a>
+                    <button type="button" class="nav-user-btn" id="btn-nav-user">
+                        <?= htmlspecialchars($current_name ?: 'Akun') ?> ▾
+                    </button>
+                    <div class="nav-dropdown" id="nav-dropdown">
+                        <div class="dd-header">Masuk sebagai <?= htmlspecialchars($current_name ?: '') ?></div>
+                        <button type="button" class="btn-logout-item" id="btn-nav-logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+
+            <?php else: ?>
+                <!-- SUDAH LOGIN SEBAGAI USER BIASA (role_id 2) -->
+                <div class="nav-auth">
+                    <button type="button" class="nav-user-btn" id="btn-nav-user">
+                        <?= htmlspecialchars($current_name ?: 'Akun') ?> ▾
+                    </button>
+                    <div class="nav-dropdown" id="nav-dropdown">
+                        <div class="dd-header">Masuk sebagai <?= htmlspecialchars($current_name ?: '') ?></div>
+                        <div id="request-status-area">
+                            <!-- diisi oleh JS: tombol "Ajukan jadi Staff" atau pesan "Menunggu persetujuan" -->
+                        </div>
+                        <button type="button" class="btn-logout-item" id="btn-nav-logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    </nav>
+
+    <!-- MODAL: Ajukan jadi Staff -->
+    <div class="modal-overlay" id="request-role-modal">
+        <div class="modal-box">
+            <h3>Ajukan jadi Staff</h3>
+            <p>Pilih posisi yang ingin kamu ajukan. Admin akan meninjau permintaan ini.</p>
+            <div class="role-choice">
+                <label>
+                    <input type="radio" name="requested_role" value="3" checked>
+                    <span><strong>Editor</strong> — kelola konten & moderasi komentar</span>
+                </label>
+                <label>
+                    <input type="radio" name="requested_role" value="4">
+                    <span><strong>Author</strong> — menulis & mengelola post sendiri</span>
+                </label>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display:block; font-size:13px; font-weight:600; color:var(--navy-900); margin-bottom:6px;">
+                    NIP (Nomor Induk Pegawai) *
+                </label>
+                <input type="text" id="nip-input" placeholder="Contoh: 198501012010011001"
+                    style="width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:7px; font-family:inherit; font-size:14px;">
+                <small style="color:var(--muted); font-size:12px;">Wajib diisi, dipakai Admin untuk memverifikasi pengajuan kamu.</small>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-plain" id="btn-cancel-request">Batal</button>
+                <button type="button" class="btn-primary-solid" id="btn-submit-request">Kirim Pengajuan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Baca Berita & Tulis Komentar -->
+    <div class="modal-overlay" id="post-detail-modal">
+        <div class="modal-box" style="max-width: 680px; max-height: 85vh; overflow-y: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                <span id="post-detail-category" style="background:var(--blue-500); color:#fff; font-size:11.5px; font-weight:600; padding:3px 10px; border-radius:4px;">Berita</span>
+                <button type="button" class="btn-plain" id="btn-close-post" style="border:none; font-size:22px; cursor:pointer; padding:0 6px; line-height:1;">&times;</button>
+            </div>
+            <h2 id="post-detail-title" style="font-size:24px; font-weight:700; margin-bottom:8px; line-height:1.3; color:var(--navy-900);"></h2>
+            <div id="post-detail-meta" style="color:var(--muted); font-size:12.5px; margin-bottom:18px;"></div>
+            <div id="post-detail-content" style="font-size:15px; line-height:1.7; color:var(--ink); margin-bottom:28px; border-bottom:1px solid var(--border); padding-bottom:24px;"></div>
+
+            <!-- Bagian Komentar -->
+            <h3 style="font-size:18px; font-weight:600; margin-bottom:12px; color:var(--navy-900);">💬 Komentar (<span id="comment-count">0</span>)</h3>
+            <div id="comments-list" style="margin-bottom:22px; display:flex; flex-direction:column; gap:10px;"></div>
+
+            <!-- Form Tulis Komentar -->
+            <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:16px;">
+                <h4 style="font-size:14px; font-weight:600; margin-bottom:10px; color:var(--navy-900);">Tulis Komentar</h4>
+                <input type="hidden" id="comment-post-id">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <input type="text" id="comment-author-name" placeholder="Nama Anda *" style="padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit;">
+                    <input type="email" id="comment-author-email" placeholder="Email (opsional)" style="padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit;">
+                </div>
+                <textarea id="comment-content" rows="3" placeholder="Tulis komentar atau tanggapan Anda... *" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:inherit; margin-bottom:10px; resize:vertical;"></textarea>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <small id="comment-msg" style="font-size:12.5px; font-weight:500;"></small>
+                    <button type="button" class="btn-primary-solid" id="btn-submit-comment" style="font-size:13px; padding:7px 18px;">Kirim Komentar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <header class="hero">
+        <div class="wrap">
+            <div class="eyebrow">Layanan Informasi Publik</div>
+            <h1><?= htmlspecialchars($site_description ?? 'Berita dan pengumuman resmi daerah, satu tempat terpercaya.') ?></h1>
+            <p>Diskominfo menyajikan informasi terkini seputar kebijakan, kegiatan, dan layanan pemerintah untuk warga.</p>
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Cari berita berdasarkan judul...">
+                <button type="button" id="search-btn">Cari</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="news-section">
+        <div class="wrap">
+            <div class="section-head">
+                <h2>Berita Terkini</h2>
+                <span class="result-count" id="result-count"></span>
+            </div>
+            <div class="news-grid" id="public-posts-container">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    Memuat berita...
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <?= htmlspecialchars($footer_text ?? '&copy; 2026 Portal Diskominfo. Seluruh hak cipta dilindungi.') ?>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        const IS_LOGGED_IN = <?= $is_logged_in ? 'true' : 'false' ?>;
+        const CURRENT_ROLE = <?= json_encode($current_role) ?>;
+        const CURRENT_USER_ID = <?= json_encode($current_user_id) ?>;
+        const USER_API = '<?= base_url("api/user") ?>';
+
+        let allPosts = [];
+
+        function formatDate(dateStr) {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        function renderPosts(posts) {
+            const container = $('#public-posts-container');
+            $('#result-count').text(posts.length ? posts.length + ' berita' : '');
+
+            if (posts.length === 0) {
+                container.html('<div class="empty-state">Tidak ada berita yang cocok dengan pencarian kamu.</div>');
+                return;
+            }
+
+            let html = '';
+            const [featured, ...rest] = posts;
+
+            html += `
+                <div class="featured-card" data-id="${featured.id}" style="cursor:pointer;">
+                    <span class="tag">Sorotan</span>
+                    <h3>${featured.title}</h3>
+                    <p>${featured.excerpt || 'Tidak ada ringkasan.'}</p>
+                    <span class="date">${formatDate(featured.created_at)}</span>
+                </div>
+                <div class="news-list">
+            `;
+
+            if (rest.length === 0) {
+                html += '<div class="news-item"><p>Belum ada berita lain.</p></div>';
+            } else {
+                rest.forEach(function(post) {
+                    html += `
+                        <div class="news-item" data-id="${post.id}" style="cursor:pointer;">
+                            <h3>${post.title}</h3>
+                            <p>${post.excerpt || 'Tidak ada ringkasan.'}</p>
+                            <span class="date">${formatDate(post.created_at)}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            html += '</div>';
+            container.html(html);
+        }
+
+        function filterPosts(query) {
+            const q = query.trim().toLowerCase();
+            if (!q) return allPosts;
+            return allPosts.filter(function(post) {
+                return post.title.toLowerCase().includes(q);
+            });
+        }
+
+        $(document).ready(function() {
+            $.ajax({
+                url: '<?= base_url("api/public/posts") ?>',
+                type: 'GET',
+                success: function(res) {
+                    if (res.status === 'success') {
+                        allPosts = res.data || [];
+                        renderPosts(allPosts);
+                    } else {
+                        $('#public-posts-container').html('<div class="error-state">Gagal memuat data berita.</div>');
+                    }
+                },
+                error: function() {
+                    $('#public-posts-container').html('<div class="error-state">Gagal memuat data berita.</div>');
+                }
+            });
+
+            $('#search-input').on('input', function() {
+                renderPosts(filterPosts($(this).val()));
+            });
+            $('#search-btn').on('click', function() {
+                renderPosts(filterPosts($('#search-input').val()));
+            });
+
+            $(window).on('scroll', function() {
+                $('#navbar').toggleClass('is-scrolled', $(window).scrollTop() > 10);
+            });
+
+            // ===== Dropdown akun =====
+            $('#btn-nav-user').on('click', function(e) {
+                e.stopPropagation();
+                $('#nav-dropdown').toggleClass('show');
+            });
+            // FIX: sebelumnya pakai e.stopPropagation() di #nav-dropdown, ini
+            // menghalangi event klik "bubbling" sampai ke document, padahal
+            // tombol #btn-open-request (Ajukan jadi Staff) di-listen lewat
+            // delegated event di document — jadi klik tombolnya gak pernah kedeteksi.
+            // Sekarang cek posisi klik-nya aja: kalau di luar dropdown & tombol user, baru tutup.
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#nav-dropdown, #btn-nav-user').length) {
+                    $('#nav-dropdown').removeClass('show');
+                }
+            });
+
+            // ===== Logout =====
+            $('#btn-nav-logout').on('click', function() {
+                if (!confirm('Yakin mau logout?')) return;
+                fetch('<?= base_url("api/auth/logout") ?>', { method: 'POST' })
+                    .then(function() { window.location.href = '<?= base_url("home") ?>'; })
+                    .catch(function() { window.location.href = '<?= base_url("home") ?>'; });
+            });
+
+            // ===== Ajukan jadi Staff (khusus role User biasa) =====
+            if (IS_LOGGED_IN && CURRENT_ROLE == 2) {
+                checkRequestStatus();
+            }
+
+            function checkRequestStatus() {
+                $.ajax({
+                    url: `${USER_API}/detail/${CURRENT_USER_ID}`,
+                    method: 'GET',
+                    success: function(res) {
+                        const u = res.data;
+                        if (u.request_status === 'pending') {
+                            $('#request-status-area').html(
+                                '<div class="pending-note"><i class="fas fa-clock"></i> Pengajuan sedang menunggu persetujuan Admin.</div>'
+                            );
+                        } else {
+                            $('#request-status-area').html(
+                                '<button type="button" id="btn-open-request">Ajukan jadi Staff</button>'
+                            );
+                        }
+                    }
+                });
+            }
+
+            $(document).on('click', '#btn-open-request', function() {
+                $('#nav-dropdown').removeClass('show');
+                $('#request-role-modal').addClass('show');
+            });
+
+            $('#btn-cancel-request').on('click', function() {
+                $('#request-role-modal').removeClass('show');
+            });
+
+            $('#btn-submit-request').on('click', function() {
+                const roleId = $('input[name="requested_role"]:checked').val();
+                const nip = $('#nip-input').val().trim();
+
+                if (!nip || nip.length < 6) {
+                    alert('NIP wajib diisi (minimal 6 karakter)!');
+                    return;
+                }
+
+                $.ajax({
+                    url: `${USER_API}/request_role`,
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        requested_role_id: parseInt(roleId, 10),
+                        nip: nip
+                    }),
+                    success: function(res) {
+                        alert(res.message || 'Pengajuan berhasil dikirim!');
+                        $('#request-role-modal').removeClass('show');
+                        $('#nip-input').val('');
+                        checkRequestStatus();
+                    },
+                    error: function(xhr) {
+                        alert(xhr.responseJSON?.message || 'Gagal mengirim pengajuan');
+                    }
+                });
+            });
+
+            // ===== Baca Berita & Tulis Komentar =====
+            $(document).on('click', '.featured-card, .news-item', function() {
+                const id = $(this).data('id');
+                const post = allPosts.find(p => p.id == id);
+                if (!post) return;
+
+                $('#post-detail-title').text(post.title);
+                $('#post-detail-category').text(post.category_name || 'Berita');
+                $('#post-detail-meta').text(`Ditulis oleh ${post.author_name || 'Admin'} • ${formatDate(post.created_at)}`);
+                $('#post-detail-content').html(post.content || post.excerpt || '<p>Tidak ada isi konten.</p>');
+                $('#comment-post-id').val(post.id);
+                $('#comment-msg').text('').attr('style', '');
+
+                loadPostComments(post.id);
+                $('#post-detail-modal').addClass('show');
+            });
+
+            $('#btn-close-post').on('click', function() {
+                $('#post-detail-modal').removeClass('show');
+            });
+
+            $(document).on('click', function(e) {
+                if ($(e.target).is('#post-detail-modal')) {
+                    $('#post-detail-modal').removeClass('show');
+                }
+            });
+
+            function loadPostComments(postId) {
+                $('#comments-list').html('<small style="color:var(--muted)">Memuat komentar...</small>');
+                $.ajax({
+                    url: `<?= base_url("api/comments/post") ?>/${postId}`,
+                    method: 'GET',
+                    success: function(res) {
+                        const comments = res.data || [];
+                        $('#comment-count').text(comments.length);
+                        if (comments.length === 0) {
+                            $('#comments-list').html('<small style="color:var(--muted)">Belum ada komentar yang disetujui. Jadilah yang pertama berkomentar!</small>');
+                            return;
+                        }
+                        let html = '';
+                        comments.forEach(function(c) {
+                            html += `
+                                <div style="background:#fff; border:1px solid var(--border); border-radius:6px; padding:10px 12px;">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                        <strong style="font-size:13px; color:var(--navy-900);">${c.author_name || 'Pembaca'}</strong>
+                                        <span style="font-size:11.5px; color:var(--muted);">${new Date(c.created_at).toLocaleDateString('id-ID')}</span>
+                                    </div>
+                                    <p style="font-size:13px; color:var(--ink); margin:0;">${c.content}</p>
+                                </div>
+                            `;
+                        });
+                        $('#comments-list').html(html);
+                    },
+                    error: function() {
+                        $('#comments-list').html('<small style="color:#C4432A">Gagal memuat komentar.</small>');
+                    }
+                });
+            }
+
+            $('#btn-submit-comment').on('click', function() {
+                const postId = $('#comment-post-id').val();
+                const name = $('#comment-author-name').val().trim();
+                const email = $('#comment-author-email').val().trim();
+                const content = $('#comment-content').val().trim();
+
+                if (!content) {
+                    $('#comment-msg').css('color', '#C4432A').text('Isi komentar wajib diisi!');
+                    return;
+                }
+
+                const data = {
+                    post_id: parseInt(postId, 10),
+                    author_name: name || 'Anonim',
+                    author_email: email || null,
+                    content: content
+                };
+
+                $('#btn-submit-comment').prop('disabled', true).text('Mengirim...');
+
+                $.ajax({
+                    url: '<?= base_url("api/comments/add") ?>',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function() {
+                        $('#comment-msg').css('color', '#107C41').text('Komentar berhasil dikirim, menunggu moderasi admin.');
+                        $('#comment-content').val('');
+                        $('#btn-submit-comment').prop('disabled', false).text('Kirim Komentar');
+                    },
+                    error: function(xhr) {
+                        $('#comment-msg').css('color', '#C4432A').text(xhr.responseJSON?.message || 'Gagal mengirim komentar.');
+                        $('#btn-submit-comment').prop('disabled', false).text('Kirim Komentar');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

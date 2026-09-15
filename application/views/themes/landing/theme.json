@@ -1,0 +1,25 @@
+{
+  "name": "Modern SaaS & Startup",
+  "slug": "landing",
+  "author": "CMS Team",
+  "version": "1.0.0",
+  "category": "Bisnis",
+  "description": "Landing page konversi tinggi untuk aplikasi, produk SaaS, agensi digital, dan startup teknologi.",
+  "features": ["Hero Gradasi", "Pricing Table", "Feature Highlights", "Call-to-Action"],
+  "default_options": {
+    "color_primary": "#06B6D4",
+    "color_secondary": "#0F172A",
+    "font_heading": "Plus Jakarta Sans",
+    "font_body": "Inter",
+    "layout_columns": "1",
+    "sidebar_position": "none",
+    "header_style": "sticky",
+    "footer_style": "dark",
+    "enable_social": "1",
+    "social_twitter": "",
+    "social_linkedin": "",
+    "custom_css": "",
+    "custom_js": ""
+  }
+}
+

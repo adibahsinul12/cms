@@ -1,0 +1,25 @@
+{
+  "name": "Portofolio Kreatif",
+  "slug": "portfolio",
+  "author": "CMS Team",
+  "version": "1.0.0",
+  "category": "Portofolio",
+  "description": "Tampilan modern gelap/terang untuk memamerkan karya visual, proyek desain, fotografi, dan portofolio profesional.",
+  "features": ["Visual Grid Showroom", "Hero Minimalis", "Kontak Proyek", "Dark Accent"],
+  "default_options": {
+    "color_primary": "#8B5CF6",
+    "color_secondary": "#09090B",
+    "font_heading": "Plus Jakarta Sans",
+    "font_body": "Inter",
+    "layout_columns": "3",
+    "sidebar_position": "none",
+    "header_style": "fixed",
+    "footer_style": "dark",
+    "enable_social": "1",
+    "social_instagram": "",
+    "social_github": "",
+    "custom_css": "",
+    "custom_js": ""
+  }
+}
+

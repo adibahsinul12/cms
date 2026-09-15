@@ -1,0 +1,25 @@
+{
+  "name": "Katalog Toko & UMKM",
+  "slug": "katalog",
+  "author": "CMS Team",
+  "version": "1.0.0",
+  "category": "Toko",
+  "description": "Format etalase produk jualan, galeri foto barang dagangan, dan tombol chat pemesanan langsung via WhatsApp.",
+  "features": ["WhatsApp Checkout", "Katalog Grid", "Badge Diskon/Kategori", "Modal Rincian Produk"],
+  "default_options": {
+    "color_primary": "#10B981",
+    "color_secondary": "#0F172A",
+    "font_heading": "Plus Jakarta Sans",
+    "font_body": "Inter",
+    "layout_columns": "3",
+    "sidebar_position": "none",
+    "header_style": "sticky",
+    "footer_style": "minimal",
+    "enable_social": "1",
+    "social_whatsapp": "6281234567890",
+    "social_instagram": "",
+    "custom_css": "",
+    "custom_js": ""
+  }
+}
+

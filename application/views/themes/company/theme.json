@@ -1,0 +1,26 @@
+{
+  "name": "Company Profile",
+  "slug": "company",
+  "author": "CMS Team",
+  "version": "1.0.0",
+  "category": "Bisnis",
+  "description": "Landing page profesional untuk profil perusahaan, visi-misi, pilar layanan unggulan, dan kontak bisnis.",
+  "features": ["Hero CTA", "Pilar Layanan", "Publikasi Terkini", "Profil Lembaga"],
+  "default_options": {
+    "color_primary": "#2563EB",
+    "color_secondary": "#0F172A",
+    "font_heading": "Inter",
+    "font_body": "Inter",
+    "layout_columns": "1",
+    "sidebar_position": "none",
+    "header_style": "fixed",
+    "footer_style": "dark",
+    "enable_social": "1",
+    "social_facebook": "",
+    "social_instagram": "",
+    "social_linkedin": "",
+    "custom_css": "",
+    "custom_js": ""
+  }
+}
+

@@ -15,9 +15,12 @@ class Admin extends CI_Controller {
         'users'       => 'users',
         'settings'    => 'settings',
         'comments'    => 'comments',
-        'logs'        => 'logs',
-        'seo'         => 'seo',
-        'my_site'     => 'my_site',
+        'logs'               => 'logs',
+        'seo'                => 'seo',
+        'my_site'            => 'my_site',
+        'templates'          => 'templates',
+        'customize_template' => 'templates',
+        'template_editor'    => 'templates',
     ];
 
     public function __construct() {
@@ -63,4 +66,7 @@ class Admin extends CI_Controller {
     public function logs() { $this->load->view('admin/logs/index'); }
     public function seo() { $this->load->view('admin/seo/index'); }
     public function my_site() { $this->load->view('admin/my_site/index'); }
+    public function templates() { $this->load->view('admin/templates/index'); }
+    public function customize_template($id = null) { $data['template_id'] = $id; $this->load->view('admin/templates/customize', $data); }
+    public function template_editor($id = null) { $data['template_id'] = $id; $this->load->view('admin/templates/editor', $data); }
 }

@@ -110,3 +110,30 @@ $route['api/user/my_site']           = 'api/user/my_site';
 $route['admin/my-site']              = 'admin/my_site';
 $route['admin/my_site']              = 'admin/my_site';
 $route['u/(:any)']                   = 'site/view/$1';
+
+// ==========================================
+// 9. TEMPLATE STUDIO & CUSTOMIZER ROUTES
+// ==========================================
+$route['admin/templates']                  = 'admin/templates';
+$route['admin/templates/customize']        = 'admin/customize_template';
+$route['admin/templates/customize/(:num)'] = 'admin/customize_template/$1';
+$route['admin/templates/editor']           = 'admin/template_editor';
+$route['admin/templates/editor/(:num)']    = 'admin/template_editor/$1';
+
+$route['template/preview']                 = 'template_preview/index';
+$route['template/preview/(:num)']          = 'template_preview/index/$1';
+
+$route['api/templates']                       = 'api/templates/index';
+$route['api/templates/detail/(:num)']         = 'api/templates/detail/$1';
+$route['api/templates/activate/(:num)']       = 'api/templates/activate/$1';
+$route['api/templates/options/(:num)']        = 'api/templates/options/$1';
+$route['api/templates/reset_options/(:num)']  = 'api/templates/reset_options/$1';
+$route['api/templates/files/(:num)']          = 'api/templates/files/$1';
+$route['api/templates/file_content']          = 'api/templates/file_content';
+$route['api/templates/save_file']             = 'api/templates/save_file';
+$route['api/templates/revisions/(:num)']      = 'api/templates/revisions/$1';
+$route['api/templates/restore_revision/(:num)']= 'api/templates/restore_revision/$1';
+$route['api/templates/duplicate/(:num)']      = 'api/templates/duplicate/$1';
+$route['api/templates/delete/(:num)']         = 'api/templates/delete/$1';
+$route['api/templates/export/(:num)']         = 'api/templates/export/$1';
+$route['api/templates/import']                = 'api/templates/import';

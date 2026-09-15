@@ -1,0 +1,25 @@
+{
+  "name": "Blog Minimalis",
+  "slug": "blog",
+  "author": "CMS Team",
+  "version": "1.0.0",
+  "category": "Blog",
+  "description": "Desain bersih dan minimalis yang berfokus pada kenyamanan membaca artikel, catatan harian, dan opini penulis.",
+  "features": ["Reading Focused", "Author Bio Box", "Kategori Navigasi", "Mode Baca Nyaman"],
+  "default_options": {
+    "color_primary": "#EA580C",
+    "color_secondary": "#1E293B",
+    "font_heading": "Merriweather",
+    "font_body": "Inter",
+    "layout_columns": "2",
+    "sidebar_position": "right",
+    "header_style": "classic",
+    "footer_style": "minimal",
+    "enable_social": "1",
+    "social_twitter": "",
+    "social_instagram": "",
+    "custom_css": "",
+    "custom_js": ""
+  }
+}
+

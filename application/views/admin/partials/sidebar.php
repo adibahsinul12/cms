@@ -20,9 +20,10 @@ $menu_items = [
     'comments'   => ['label' => 'Comments',      'icon' => 'fa-comments',    'url' => 'admin/comments'],
     'users'      => ['label' => 'Users',         'icon' => 'fa-users',       'url' => 'admin/users'],
     'seo'        => ['label' => 'SEO',           'icon' => 'fa-search',      'url' => 'admin/seo'],
-    'settings'   => ['label' => 'Settings',      'icon' => 'fa-cog',         'url' => 'admin/settings'],
-    'logs'       => ['label' => 'Audit Log',     'icon' => 'fa-history',     'url' => 'admin/logs'],
-    'my_site'    => ['label' => 'Website Saya',   'icon' => 'fa-globe',    'url' => 'admin/my-site'],
+    'settings'   => ['label' => 'Settings',        'icon' => 'fa-cog',         'url' => 'admin/settings'],
+    'templates'  => ['label' => 'Template Studio', 'icon' => 'fa-palette',     'url' => 'admin/templates'],
+    'logs'       => ['label' => 'Audit Log',       'icon' => 'fa-history',     'url' => 'admin/logs'],
+    'my_site'    => ['label' => 'Website Saya',     'icon' => 'fa-globe',       'url' => 'admin/my-site'],
 ];
 
 // === AMBIL TEMA AKTIF DARI DATABASE ===
